@@ -53,7 +53,7 @@ while ~converged && num_iter < 400
   v = x + u;
   V = reshape(construct_symmetric(n) * v, [n, n]);
   Z = project_psd(V);
-  plot(svd(Z));
+  stem(svd(Z));
   drawnow;
   z = construct_symmetric(n) \ Z(:);
 

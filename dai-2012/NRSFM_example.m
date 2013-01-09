@@ -79,3 +79,8 @@ else
     [Shat_BMM Shat_PI Shat_Improve Rsh R_Recover Shape_Err_BMM Shape_Err_PI Shape_Err_Smooth Rotation_Err] = NRSFM_BMM(W,K,rotStruct);
 end
 
+F = size(Shat_PI, 1) / 3;
+P = size(Shat_PI, 2);
+
+points_PI = shiftdim(reshape(Shat_PI, [3, F, P]), 1);
+plot_movie(figure(1), points_PI, 10, [], {'-rx'});
