@@ -1,6 +1,6 @@
 function G = find_corrective_matrix_admm(PI_Hat)
 
-lambda = 1;
+lambda = 1e9;
 rho_init = 1;
 mu = 10;
 tau_incr = 2;

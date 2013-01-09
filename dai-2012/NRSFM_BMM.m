@@ -84,6 +84,7 @@ PI_Hat = U(:,1:3*K)*sqrt(D(1:3*K,1:3*K));
 
 % Find corrective transform.
 %G = find_corrective_matrix_dai(PI_Hat);
+%G = find_corrective_matrix_admm(PI_Hat);
 G = find_corrective_matrix_admm_nullspace(PI_Hat);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
