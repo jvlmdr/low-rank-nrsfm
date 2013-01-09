@@ -58,7 +58,7 @@
 clear
 clc
 
-load datasets\yoga
+load ../../data/akhter-2008/yoga
 
 K = 10;
 

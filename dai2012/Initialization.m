@@ -28,29 +28,33 @@
 %Last update: 2012-10-01
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+addpath(genpath('~/matlab/yalmip'));
+addpath('~/matlab/SeDuMi_1_3');
 
-addpath('C:\Users\yuchao\Documents\MATLAB\work\yalmip')
-addpath('C:\Users\yuchao\Documents\MATLAB\work\yalmip\extras')
-addpath('C:\Users\yuchao\Documents\MATLAB\work\yalmip\modules')
-addpath('C:\Users\yuchao\Documents\MATLAB\work\yalmip\operators')
-addpath('C:\Users\yuchao\Documents\MATLAB\work\yalmip\solvers')
-addpath('C:\Users\yuchao\Documents\MATLAB\work\yalmip\usertest')
-addpath('C:\Users\yuchao\Documents\MATLAB\work\yalmip\modules\global')
-addpath('C:\Users\yuchao\Documents\MATLAB\work\yalmip\modules\moment')
-addpath('C:\Users\yuchao\Documents\MATLAB\work\yalmip\modules\parametric')
-addpath('C:\Users\yuchao\Documents\MATLAB\work\yalmip\modules\robust')
-addpath('C:\Users\yuchao\Documents\MATLAB\work\yalmip\modules\sos')
-%addpath('C:\Users\yuchao\Documents\MATLAB\work\SeDuMi_1_1')
-addpath('C:\Users\yuchao\Documents\MATLAB\work\SDPT3-4.0')
-% addpath('D:\MATLAB\R2008a\work\lmirank')
-
-% addpath('D:\MATLAB\R2008a\work\csdp6.1.0winp4')
-% addpath('D:\MATLAB\R2008a\work\csdp6.1.0winp4\bin')
-% addpath('D:\MATLAB\R2008a\work\csdp6.1.0winp4\matlab')
+%
+%addpath('C:\Users\yuchao\Documents\MATLAB\work\yalmip')
+%addpath('C:\Users\yuchao\Documents\MATLAB\work\yalmip\extras')
+%addpath('C:\Users\yuchao\Documents\MATLAB\work\yalmip\modules')
+%addpath('C:\Users\yuchao\Documents\MATLAB\work\yalmip\operators')
+%addpath('C:\Users\yuchao\Documents\MATLAB\work\yalmip\solvers')
+%addpath('C:\Users\yuchao\Documents\MATLAB\work\yalmip\usertest')
+%addpath('C:\Users\yuchao\Documents\MATLAB\work\yalmip\modules\global')
+%addpath('C:\Users\yuchao\Documents\MATLAB\work\yalmip\modules\moment')
+%addpath('C:\Users\yuchao\Documents\MATLAB\work\yalmip\modules\parametric')
+%addpath('C:\Users\yuchao\Documents\MATLAB\work\yalmip\modules\robust')
+%addpath('C:\Users\yuchao\Documents\MATLAB\work\yalmip\modules\sos')
+%%addpath('C:\Users\yuchao\Documents\MATLAB\work\SeDuMi_1_1')
+%addpath('C:\Users\yuchao\Documents\MATLAB\work\SDPT3-4.0')
+%% addpath('D:\MATLAB\R2008a\work\lmirank')
+%
+%% addpath('D:\MATLAB\R2008a\work\csdp6.1.0winp4')
+%% addpath('D:\MATLAB\R2008a\work\csdp6.1.0winp4\bin')
+%% addpath('D:\MATLAB\R2008a\work\csdp6.1.0winp4\matlab')
+%
 
 %sdpsettings('solver','csdp')
 %sdpsettings('solver','lmirank')
-%sdpsettings('solver','sedumi','sedumi.eps',1e-9)
-sdpsettings('solver','sdpt3')
+sdpsettings('solver','sedumi','sedumi.eps',1e-9);
+%sdpsettings('solver','sdpt3')
 %Set SDP solver to "sedumi" or "sdpt3"
-sdpsettings('usex0',1)
+sdpsettings('usex0',1);
