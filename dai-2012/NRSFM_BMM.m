@@ -165,8 +165,9 @@ end
 
 disp('Start to solve shape matrix by the block matrix method using SDP/FPC ... (SDP/FPC is a rather slow process, be patient please....:-) hongdong ');
     
-
-S_BMM = shape_recovery_fpca_s_sharp(W,Rsh,Shat_PI,K);
+save;
+S_BMM = find_structure_shape_basis_admm(W, sparse(Rsh));
+%S_BMM = shape_recovery_fpca_s_sharp(W,Rsh,Shat_PI,K);
 
 Shat_BMM = S_to_Shat(S_BMM,K);                   % Transform to K basis form
 

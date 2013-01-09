@@ -64,7 +64,7 @@ while ~converged && num_iter < 400
   norm_r = norm(r);
   norm_s = norm(s);
 
-  fprintf('%12d %12d %12g %12g\n', num_iter, rho, norm_r, norm_s);
+  fprintf('%12d %12g %12g %12g\n', num_iter, rho, norm_r, norm_s);
 
   if norm_r ~= 0 && norm_s ~= 0
     if norm_r > mu * norm_s
