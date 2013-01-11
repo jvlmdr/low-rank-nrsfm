@@ -81,11 +81,12 @@ end
 %--------------------------------------------------------------------------
 %Obtain the initial factorization result
 PI_Hat = U(:,1:3*K)*sqrt(D(1:3*K,1:3*K));
+B_Hat = diag(sqrt(diag(D(1:3*K, 1:3*K)))) * V(:, 1:3*K)';
 
 % Find corrective transform.
 %G = find_corrective_matrix_dai(PI_Hat);
-%G = find_corrective_matrix_admm(PI_Hat);
-G = find_corrective_matrix_admm_nullspace(PI_Hat);
+G = find_corrective_matrix_admm(PI_Hat);
+%G = find_corrective_matrix_admm_nullspace(B_Hat, G);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -105,6 +106,10 @@ else
 end
 %=========================================================================
 %Recovery the deformable shape
+
+%R_Recover = kron(ones(nPose, 1), eye(2, 3));
+%RR = mat2cell(R_Recover, 2 * ones(nPose, 1), 3);
+%Rsh = blkdiag(RR{:});
 
 %Method 1: Pseudo-inverse method
 S_PI = pinv(Rsh)*W;                       % Rank-3K S
@@ -166,6 +171,7 @@ end
 disp('Start to solve shape matrix by the block matrix method using SDP/FPC ... (SDP/FPC is a rather slow process, be patient please....:-) hongdong ');
     
 save;
+%S_BMM = find_structure_corrective_matrix(PI_Hat, B_Hat, G);
 S_BMM = find_structure_shape_basis_admm(W, sparse(Rsh));
 %S_BMM = shape_recovery_fpca_s_sharp(W,Rsh,Shat_PI,K);
 
