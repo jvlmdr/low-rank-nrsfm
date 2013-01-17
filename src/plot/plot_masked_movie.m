@@ -1,6 +1,7 @@
-function plot_movie(fig, points, fps, lim, opts)
+function plot_masked_movie(fig, points, mask, fps, lim)
   % Parameters:
-  % points -- num_frames x num_joints x 3 matrix of joint positions.
+  % points -- num_frames x num_points x 3 matrix of joint positions.
+  % mask -- num_frames x num_points visibility matrix
   % fps -- Upper limit on framerate to render at.
   % ... -- Additional arguments to line().
 
@@ -29,15 +30,16 @@ function plot_movie(fig, points, fps, lim, opts)
   points = shiftdim(points, 1);
 
   animation = Animation(fig);
-  animation.render = @(fig, i) render(fig, points, i, opts);
+  animation.render = @(fig, i) render(fig, points, mask, i);
   animation.length = F;
   animation.fps = fps;
 
   animation.play();
 end
 
-function render(fig, points, i, opts)
+function render(fig, points, mask, t)
   cla;
-  plot_auto(gca(fig), points(:, :, i), opts{:});
-  title(sprintf('%d / %d', i, size(points, 3)));
+  plot_auto(gca(fig), points(mask(t, :) ~= 0, :, t), 'kx');
+  plot_auto(gca(fig), points(mask(t, :) == 0, :, t), 'yo');
+  title(sprintf('%d / %d', t, size(points, 3)));
 end

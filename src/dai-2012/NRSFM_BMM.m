@@ -168,12 +168,19 @@ end
 %--------------------------------------------------------------------------
 %Method 3: Block matrix method solved with fixed point continuation
 
-disp('Start to solve shape matrix by the block matrix method using SDP/FPC ... (SDP/FPC is a rather slow process, be patient please....:-) hongdong ');
-    
-save;
-%S_BMM = find_structure_corrective_matrix(PI_Hat, B_Hat, G);
-S_BMM = find_structure_shape_basis_admm(W, sparse(Rsh));
+%disp('Start to solve shape matrix by the block matrix method using SDP/FPC ... (SDP/FPC is a rather slow process, be patient please....:-) hongdong ');
 %S_BMM = shape_recovery_fpca_s_sharp(W,Rsh,Shat_PI,K);
+
+% ADMM settings.
+settings.rho = 1;
+settings.mu = 10;
+settings.tau_incr = 2;
+settings.tau_decr = 2;
+settings.max_iter = 200;
+settings.epsilon_abs = 1e-3;
+settings.epsilon_rel = 1e-3;
+% Find structure using ADMM.
+S_BMM = find_structure_matrix_equality(W, sparse(Rsh), true, settings);
 
 Shat_BMM = S_to_Shat(S_BMM,K);                   % Transform to K basis form
 

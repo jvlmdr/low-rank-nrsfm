@@ -3,13 +3,13 @@ function plot_auto(ax, x, varargin)
     if size(x, 2) == 2
       plot(ax, x(:, 1), x(:, 2), varargin{:});
     else
-      plot3(ax, x(:, 1), x(:, 2), x(:, 3), varargin{:});
+      plot3(ax, x(:, 1), x(:, 3), x(:, 2), varargin{:});
     end
   else
     if size(x, 2) == 2
       plot(ax, x(:, :, 1), x(:, :, 2), varargin{:});
     else
-      plot3(ax, x(:, :, 1), x(:, :, 2), x(:, :, 3), varargin{:});
+      plot3(ax, x(:, :, 1), x(:, :, 3), x(:, :, 2), varargin{:});
     end
   end
 end
