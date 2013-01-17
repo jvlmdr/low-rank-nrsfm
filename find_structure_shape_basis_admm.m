@@ -7,6 +7,7 @@ rho_init = 1;
 mu = 10;
 tau_incr = 2;
 tau_decr = 2;
+max_iter = 200;
 
 F = size(W, 1) / 2;
 N = size(W, 2);
@@ -31,7 +32,7 @@ rho = rho_init;
 z = zeros(n, 1);
 u = zeros(n, 1);
 
-while ~converged && num_iter < 400
+while ~converged && num_iter < max_iter
   z_prev = z;
   num_iter = num_iter + 1;
 

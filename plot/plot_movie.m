@@ -19,6 +19,7 @@ function plot_movie(fig, points, fps, lim, opts)
     axis vis3d;
   end
   hold on;
+  grid on;
 
   % Shift the dimensions for easier access.
   points = shiftdim(points, 1);

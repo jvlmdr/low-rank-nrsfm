@@ -5,6 +5,7 @@ rho_init = 1;
 mu = 10;
 tau_incr = 2;
 tau_decr = 2;
+max_iter = 200;
 
 % PI_Hat is 2F x 3K.
 F = size(PI_Hat, 1) / 2;
@@ -43,7 +44,7 @@ rho = rho_init;
 converged = false;
 num_iter = 0;
 
-while ~converged && num_iter < 400
+while ~converged && num_iter < max_iter
   num_iter = num_iter + 1;
   z_prev = z;
 
