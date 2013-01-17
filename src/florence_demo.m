@@ -32,52 +32,28 @@ fprintf('Press enter to continue...\n');
 pause;
 close(fig);
 
-% Render movie of cameras.
-frame_dir = [output_dir, 'cameras/'];
-unix(['rm -rf ', frame_dir]);
-unix(['mkdir -p ', frame_dir]);
-frame_format = [frame_dir, '%07d.png'];
-video = [output_dir, 'cameras.mp4'];
-fig = figure();
-save_camera_movie(fig, cameras, ...
-    @(fig) view(gca(fig), [0, 90]), ...
-    @(fig, t) print_image(fig, [848, 480], 120, ...
-      sprintf(frame_format, t), {'-dpng'}), ...
-    0.1);
-close(fig);
-unix(['ffmpeg -sameq -y -i ', frame_format, ' ', video]);
+%% Render movie of cameras.
+%frame_dir = [output_dir, 'cameras/'];
+%unix(['rm -rf ', frame_dir]);
+%unix(['mkdir -p ', frame_dir]);
+%frame_format = [frame_dir, '%07d.png'];
+%video = [output_dir, 'cameras.mp4'];
+%fig = figure();
+%save_camera_movie(fig, cameras, ...
+%    @(fig) view(gca(fig), [0, 90]), ...
+%    @(fig, t) print_image(fig, [848, 480], 120, ...
+%      sprintf(frame_format, t), {'-dpng'}), ...
+%    0.1);
+%close(fig);
+%unix(['ffmpeg -sameq -y -i ', frame_format, ' ', video]);
 
-% Build linear systems of algebraic error.
 fprintf('Building linear systems...\n');
-clear observations;
+% Build linear systems of algebraic error.
+observations = struct('Q', {}, 'q', {});
 for i = 1:num_points
-  observations(i) = struct('Q', [], 'q', []);
-end
-
-for t = 1:num_frames
-  P = C{t}.P;
-  w = C{t}.m(:, 1:2)';
-  ind = C{t}.m(:, 3);
-
-  % P [x; 1] ~ [w 1]
-  % P(:, 1:3) x + P(:, 4) ~ [w; 1]
-  % P(1:2, 1:3) x + P(1:2, 4) / (P(3, 1:3) x + P(3, 4)) = w
-  % P(1:2, 1:3) x + P(1:2, 4) = (P(3, 1:3) x + P(3, 4)) w
-  % (P(1:2, 1:3) - w P(3, 1:3)) x = P(3, 4) w - P(1:2, 4)
-  % Q x = q
-
-  for j = 1:size(w, 2);
-    Q_ti = P(1:2, 1:3) - w(:, j) * P(3, 1:3);
-    q_ti = P(3, 4) * w(:, j) - P(1:2, 4);
-
-    Q = zeros(2, 3, num_frames);
-    Q(:, :, t) = Q_ti;
-    Q = reshape(Q, [2, 3 * num_frames]);
-
-    i = ind(j);
-    observations(i).Q = [observations(i).Q; sparse(Q)];
-    observations(i).q = [observations(i).q; q_ti];
-  end
+  [Q, q] = track_to_equations(cameras, projections(i));
+  observations(i).Q = Q;
+  observations(i).q = q;
 end
 
 % Stock standard ADMM settings.

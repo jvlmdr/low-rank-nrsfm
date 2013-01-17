@@ -31,7 +31,7 @@ S = reshape(S, [num_frames, num_points, 3]);
 if interactive
   % Plot 3D structure.
   fig = figure();
-  plot_movie(fig, S, 25, [], {});
+  plot_movie(fig, S, 30, [], {});
   fprintf('Press enter to continue...\n');
   pause;
   if ishandle(fig)
@@ -109,6 +109,66 @@ settings.epsilon_rel = 1e-3;
 X = find_structure_centroid(observations, true, settings);
 X = shiftdim(reshape(X, [3, num_frames, num_points]), 1);
 
+e = X - S;
+e = reshape(e, [num_frames * num_points, 3]);
+e = sqrt(sum(e .* e, 2));
+e = mean(e)
+
+if interactive
+  % Plot 3D structure.
+  fig = figure();
+  plot_movie(fig, X, 30, [], {});
+  fprintf('Press enter to continue...\n');
+  pause;
+  if ishandle(fig)
+    close(fig);
+  end
+end
+
+fprintf('Simulating missing data...\n');
+% Now simulate missing data.
+fraction_missing = 0.5;
+num_missing = round(fraction_missing * num_frames * num_points);
+subset = randperm(num_frames * num_points);
+subset = subset(1:num_missing);
+mask = ones(num_frames * num_points, 1);
+mask(subset) = 0;
+mask = reshape(mask, [num_frames, num_points]);
+
+if interactive
+  % Plot projections with missing data.
+  fig = figure();
+  plot_masked_movie(fig, projections, mask, 30, [])
+end
+
+% Convert from points and mask to trajectories.
+tracks = struct('frames', {}, 'points', {});
+for i = 1:num_points
+  frames = find(mask(:, i) ~= 0);
+  m = length(frames);
+  points = reshape(projections(frames, i, :), [m, 2]);
+
+  tracks(i).frames = frames;
+  tracks(i).points = points;
+end
+
+fprintf('Building linear systems...\n');
+% Build linear systems of algebraic error.
+projection_constraints = struct('Q', {}, 'q', {});
+for i = 1:num_points
+  [Q, q] = track_to_equations(cameras, tracks(i));
+  projection_constraints(i).Q = Q;
+  projection_constraints(i).q = q;
+end
+
+X = find_structure_centroid(projection_constraints, true, settings);
+X = shiftdim(reshape(X, [3, num_frames, num_points]), 1);
+
+e = X - S;
+e = reshape(e, [num_frames * num_points, 3]);
+e = sqrt(sum(e .* e, 2));
+e = mean(e)
+
 % Plot 3D structure.
 fig = figure();
-plot_movie(fig, X, 25, [], {});
+plot_movie(fig, X, 30, [], {});
