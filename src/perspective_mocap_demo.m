@@ -1,4 +1,5 @@
 if ~exist('interactive', 'var')
+  fprintf('Defaulting to non-interactive mode\n');
   interactive = false;
 end
 
