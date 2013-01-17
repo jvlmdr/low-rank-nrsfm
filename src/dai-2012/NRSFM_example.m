@@ -58,7 +58,7 @@
 clear
 clc
 
-load ../../data/akhter-2008/yoga
+load ../data/akhter-2008/yoga
 
 K = 10;
 
