@@ -10,7 +10,11 @@ function init(fig, lim)
   box(ax, 'off');
   set(ax, 'YDir', 'reverse');
 
-  xlabel('x');
-  ylabel('z');
-  zlabel('y');
+  xlabel(ax, 'x');
+  ylabel(ax, 'z');
+  zlabel(ax, 'y');
+
+  set(ax, 'XTickLabel', {});
+  set(ax, 'YTickLabel', {});
+  set(ax, 'ZTickLabel', {});
 end

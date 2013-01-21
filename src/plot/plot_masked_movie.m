@@ -1,4 +1,5 @@
-function plot_masked_movie(fig, points, mask, fps, lim)
+function plot_masked_movie(fig, points, mask, colors, lim, show_masked, ...
+    plot_opts, masked_plot_opts, fps)
   % Parameters:
   % points -- num_frames x num_points x 3 matrix of joint positions.
   % mask -- num_frames x num_points visibility matrix
@@ -26,20 +27,11 @@ function plot_masked_movie(fig, points, mask, fps, lim)
   hold on;
   grid on;
 
-  % Shift the dimensions for easier access.
-  points = shiftdim(points, 1);
-
   animation = Animation(fig);
-  animation.render = @(fig, i) render(fig, points, mask, i);
+  animation.render = @(fig, t) render_masked_movie(fig, points, mask, ...
+      colors, t, show_masked, plot_opts, masked_plot_opts);
   animation.length = F;
   animation.fps = fps;
 
   animation.play();
-end
-
-function render(fig, points, mask, t)
-  cla;
-  plot_auto(gca(fig), points(mask(t, :) ~= 0, :, t), 'kx');
-  plot_auto(gca(fig), points(mask(t, :) == 0, :, t), 'yo');
-  title(sprintf('%d / %d', t, size(points, 3)));
 end

@@ -10,6 +10,6 @@ function print_image(fig, pixel_size, resolution, file, opts)
 
   width = pixel_size(1);
   height = pixel_size(2);
-  command = 'convert %s -resize %dx%d %s';
+  command = 'convert %s -resize %dx%d! %s';
   unix(sprintf(command, file, width, height, file));
 end
