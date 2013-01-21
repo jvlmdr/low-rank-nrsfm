@@ -11,4 +11,6 @@ function points = load_mocap(input_file)
   end
 
   points = permute(points, [3, 2, 1]);
+
+  points = points / 1e3;
 end

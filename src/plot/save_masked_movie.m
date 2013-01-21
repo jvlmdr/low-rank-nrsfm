@@ -3,8 +3,9 @@
 % lim -- Manual axis limits. [] for automatic bounding box.
 % plot_opts -- Additional arguments to plot().
 
-function save_movie(fig, points, mask, colors, lim, show_masked, plot_opts, ...
-    masked_plot_opts, image_size, dpi, output_dir, movie_name)
+function save_masked_movie(fig, points, mask, colors, lim, show_masked, ...
+    plot_opts, masked_plot_opts, image_size, dpi, output_dir, movie_name)
+
   [num_frames, num_points, num_dims] = size(points);
   assert(num_dims == 2 || num_dims == 3, ...
       'Data must be two- or three-dimensional');
@@ -40,7 +41,8 @@ function save_movie(fig, points, mask, colors, lim, show_masked, plot_opts, ...
   end
 
   movie_file = [output_dir, '/', movie_name, '.mp4'];
-  unix(['ffmpeg -sameq -y -i ', frame_format, ' ', movie_file]);
+  resize = sprintf('-vf scale=%u:%u', image_size(1), image_size(2));
+  unix(['ffmpeg -sameq -y -i ', frame_format, ' ', resize, ' ', movie_file]);
 
   unix(['rm -rf ', frame_dir]);
 end

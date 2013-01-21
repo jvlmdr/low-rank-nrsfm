@@ -20,5 +20,6 @@ function render_masked_movie(fig, points, mask, colors, t, show_masked, ...
       end
     end
   end
+
   title(sprintf('%d / %d', t, size(points, 3)));
 end

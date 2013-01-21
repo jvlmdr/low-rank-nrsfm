@@ -2,39 +2,49 @@
 % points -- num_frames x num_joints x 3 matrix of joint positions.
 % ... -- Additional arguments to line().
 
-function save_reconstruction_movie(fig, points, mask, cameras, lim, ...
-    axis_length, user_init, print_func)
+function save_reconstruction_movie(fig, points, mask, colors, cameras, ...
+    camera_size, lim, show_masked, plot_opts, masked_plot_opts, image_size, ...
+    dpi, output_dir, movie_name)
 
-  [F, N, dim] = size(points);
-  assert(dim == 3, 'Data must be three-dimensional');
-
-  ax = gca(fig);
-
-  % Get camera centers.
-  centers = zeros(F, 3);
-  for t = 1:F
-    P = cameras(:, :, t);
-    R = P(:, 1:3);
-    d = P(:, 4);
-    centers(t, :) = (-R' * d)';
-  end
+  [num_frames, num_points, num_dims] = size(points);
+  assert(num_dims == 3, 'Data must be three-dimensional');
 
   if isempty(lim)
-    lim = axis_limits([reshape(points, [F * N, dim]); centers]);
+    % Flatten out all points over all frames.
+    range = reshape(points, [num_frames * num_points, num_dims]);
+
+    % Get camera centers.
+    centers = zeros(num_frames, 3);
+    for t = 1:num_frames
+      P = cameras(:, :, t);
+      R = P(:, 1:3);
+      d = P(:, 4);
+      centers(t, :) = (-R' * d)';
+    end
+
+    lim = axis_limits([range; centers]);
   end
 
   init3(fig, lim);
 
-  if ~isempty(user_init)
-    user_init(fig);
-  end
+  frame_dir = [output_dir, '/', movie_name];
+  unix(['rm -rf ', frame_dir]);
+  unix(['mkdir -p ', frame_dir]);
 
-  % Shift the dimensions for easier access.
-  points = shiftdim(points, 1);
+  frame_format = [frame_dir, '/%07d.png'];
 
-  for t = 1:F
-    render_reconstruction_movie(fig, points, mask, cameras, axis_length, t);
+  for t = 1:num_frames
+    render_reconstruction_movie(fig, points, mask, colors, cameras, ...
+        camera_size, t, show_masked, plot_opts, masked_plot_opts);
     drawnow;
-    print_func(fig, t);
+
+    file = sprintf(frame_format, t);
+    print_image(fig, image_size, dpi, file, {'-dpng'});
   end
+
+  movie_file = [output_dir, '/', movie_name, '.mp4'];
+  resize = sprintf('-vf scale=%u:%u', image_size(1), image_size(2));
+  unix(['ffmpeg -sameq -y -i ', frame_format, ' ', resize, ' ', movie_file]);
+
+  unix(['rm -rf ', frame_dir]);
 end

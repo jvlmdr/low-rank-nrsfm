@@ -8,8 +8,8 @@ function print_image(fig, pixel_size, resolution, file, opts)
   res_opt = sprintf('-r%d', 2 * resolution);
   print(fig, file, res_opt, opts{:});
 
-  width = pixel_size(1);
-  height = pixel_size(2);
-  command = 'convert %s -resize %dx%d! %s';
-  unix(sprintf(command, file, width, height, file));
+%  width = pixel_size(1);
+%  height = pixel_size(2);
+%  command = 'convert %s -resize %dx%d! %s';
+%  unix(sprintf(command, file, width, height, file));
 end
