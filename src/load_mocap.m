@@ -1,14 +1,14 @@
 function points = load_mocap(input_file)
   % Load 3D points.
   data = load(input_file);
-  points = data.S;
 
-  num_frames = size(points, 1) / 3;
-  num_points = size(points, 2);
+  num_frames = length(data.all_points);
+  num_points = size(data.all_points(1).pts, 2);
 
-  % [3F, N] -> [F, N, 3]
-  points = shiftdim(reshape(points, [3, num_frames, num_points]), 1);
+  points = zeros(3, num_points, num_frames);
+  for t = 1:num_frames
+    points(:, :, t) = data.all_points(t).pts;
+  end
 
-  % Swap back y and z.
-  points = points(:, :, [1, 3, 2]);
+  points = permute(points, [3, 2, 1]);
 end

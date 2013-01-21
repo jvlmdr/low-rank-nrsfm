@@ -1,6 +1,7 @@
-input_file = '../data/akhter-2008/yoga.mat';
+%input_file = '../data/akhter-2008/stretch.mat';
+input_file = '../data/cmu-mocap/09_09.mat';
 
-movie_dir = '../visualize/yoga';
+movie_dir = '../visualize/09-09';
 image_size = [848, 480];
 dpi = 100;
 
@@ -11,6 +12,7 @@ end
 
 % Load 3D points.
 fprintf('Loading mocap data...\n');
+%points = load_akhter_mocap(input_file);
 points = load_mocap(input_file);
 num_frames = size(points, 1);
 num_points = size(points, 2);
