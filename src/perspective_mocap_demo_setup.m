@@ -1,7 +1,8 @@
-%input_file = '../data/akhter-2008/stretch.mat';
-input_file = '../data/cmu-mocap/09_09.mat';
+input_file = '../data/akhter-2008/yoga.mat';
+%input_file = '../data/cmu-mocap/09_09.mat';
 
-movie_dir = '../visualize/09-09';
+movie_dir = '../visualize/yoga';
+%movie_dir = '../visualize/09-09';
 image_size = [848, 480];
 dpi = 100;
 
@@ -12,8 +13,8 @@ end
 
 % Load 3D points.
 fprintf('Loading mocap data...\n');
-%points = load_akhter_mocap(input_file);
-points = load_mocap(input_file);
+points = load_akhter_mocap(input_file);
+%points = load_mocap(input_file);
 num_frames = size(points, 1);
 num_points = size(points, 2);
 
@@ -80,9 +81,9 @@ imshow(1 - correspondence_mask);
 title('Correspondence loss');
 
 fprintf('Generating random cameras...\n');
-smooth_extrinsics = smooth_random_cameras_on_sphere(num_frames, 3 * radius, ...
-    5 * pi / 180, radius, 1 * pi / 180, shift);
-random_extrinsics = random_cameras_on_sphere(num_frames, 3 * radius, shift);
+smooth_extrinsics = smooth_random_cameras_on_sphere(num_frames, ...
+    1.5 * radius, 1 * pi / 180, 0.5 * radius, 1 * pi / 180, shift);
+random_extrinsics = random_cameras_on_sphere(num_frames, 1.5 * radius, shift);
 
 % Generate cameras.
 camera_paths = [...
@@ -110,9 +111,9 @@ end
 fig = figure();
 title('Cameras');
 subplot(1, 2, 1);
-plot_cameras(fig, camera_paths(1).extrinsics, 1);
+plot_cameras(fig, camera_paths(1).extrinsics, 0.2);
 subplot(1, 2, 2);
-plot_cameras(fig, camera_paths(2).extrinsics, 1);
+plot_cameras(fig, camera_paths(2).extrinsics, 0.2);
 
 % Generate projections for each configuration.
 sequences = struct('tracks', {});

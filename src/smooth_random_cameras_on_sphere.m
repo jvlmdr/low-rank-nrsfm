@@ -13,18 +13,12 @@ function cameras = smooth_random_cameras_on_sphere(n, r1, omega1, r2, ...
     k = -k / norm(k);
 
     % Rotational freedom in choosing x and y.
-    % Pick x to be in direction of motion.
-    if t == 1
-      i = a(t + 1, :)' - a(t, :)';
-    elseif t == n
-      i = a(t, :)' - a(t - 1, :)';
-    else
-      i = a(t + 1, :)' - a(t - 1, :)';
-    end
-    j = cross(k, i);
-    j = j / norm(j);
+    % Pick y to be most vertical.
+    j = [0; 1; 0];
     i = cross(j, k);
     i = i / norm(i);
+    j = cross(k, i);
+    j = j / norm(j);
     R = [i, j, k]';
 
     % Build camera matrix.
