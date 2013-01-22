@@ -6,7 +6,7 @@ function systems = projection_equations_to_shape_equations(projections)
   % Extract from struct using cells and blkdiag.
   systems = struct('A', {}, 'b', {});
 
-  for t = 1:num_frames
+  for t = 1:F
     A = sparse(0, 3 * N);
     b = [];
     systems(t) = struct('A', A, 'b', b);
