@@ -1,0 +1,5 @@
+close all;
+
+known_perspective_camera_demo_setup;
+known_perspective_camera_demo_solve;
+known_perspective_camera_demo_visualize;

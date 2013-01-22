@@ -1,5 +1,0 @@
-close all;
-
-perspective_mocap_demo_setup;
-perspective_mocap_demo_solve;
-perspective_mocap_demo_visualize;
