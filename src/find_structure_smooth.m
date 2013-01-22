@@ -5,11 +5,14 @@
 
 function X = find_structure_smooth(projections, use_3P, D, lambda, settings)
 
-  N = length(projections);
-  F = size(projections(1).Q, 2) / 3;
+  N = length(projections.tracks);
+  F = projections.num_frames;
 
+  fprintf('Building linear systems...\n');
+  systems = projection_equations_to_trajectory_equations(projections);
+
+  D = kron(D, speye(3));
   DD = D' * D;
-  DD = kron(DD, speye(3));
 
   converged = false;
   num_iter = 0;
@@ -20,7 +23,6 @@ function X = find_structure_smooth(projections, use_3P, D, lambda, settings)
   U = X - Z;
 
   while ~converged && num_iter < settings.max_iter
-    num_iter = num_iter + 1;
     prev_Z = Z;
 
     % Constrained least-squares, independent per point.
@@ -28,8 +30,8 @@ function X = find_structure_smooth(projections, use_3P, D, lambda, settings)
     for i = 1:N
       P = rho * speye(3 * F) + lambda * DD;
       q = -rho * V(:, i);
-      A = projections(i).Q;
-      b = projections(i).q;
+      A = systems(i).A;
+      b = systems(i).b;
       m = size(A, 1);
       M = [P, A'; A, sparse(m, m)];
       x = M \ [-q; b];
@@ -57,12 +59,16 @@ function X = find_structure_smooth(projections, use_3P, D, lambda, settings)
 
     fprintf('%12d %12g %12g %12g\n', num_iter, rho, norm_r, norm_s);
 
-    if norm_r ~= 0 && norm_s ~= 0
-      if norm_r > settings.mu * norm_s
-        rho = rho * settings.tau_incr;
-      elseif norm_s > settings.mu * norm_r
-        rho = rho / settings.tau_decr;
+    if num_iter > 0 && num_iter < settings.max_iter / 2
+      if norm_r ~= 0 && norm_s ~= 0
+        if norm_r > settings.mu * norm_s
+          rho = rho * settings.tau_incr;
+        elseif norm_s > settings.mu * norm_r
+          rho = rho / settings.tau_decr;
+        end
       end
     end
+
+    num_iter = num_iter + 1;
   end
 end

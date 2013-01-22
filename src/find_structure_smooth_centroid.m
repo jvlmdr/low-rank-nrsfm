@@ -6,28 +6,24 @@
 function [X, mu] = find_structure_smooth_centroid(projections, use_3P, D, ...
     lambda, settings)
 
-  N = length(projections);
-  F = size(projections(1).Q, 2) / 3;
+  N = length(projections.tracks);
+  F = projections.num_frames;
 
-  % Merge equations for all points and centroid.
+  % Merge equations for all points.
+  fprintf('Building linear system...\n');
+  [A, b] = projection_equations_to_single_equation(projections);
+
+  % Incorporate centroid.
+  fprintf('Incorporating centroid...\n');
+  C = [speye(3 * F * N), kron(ones(F * N, 1), speye(3))];
+  A = A * C;
   n = 3 * F * N + 3;
-  A = sparse(0, n);
-  b = zeros(0, 1);
-  for i = 1:N
-    Q = projections(i).Q;
-    % Add centroid mu in every frame.
-    A_mu = kron(ones(F, 1), speye(3));
-    A_mu = Q * A_mu;
-    m = size(Q, 1);
-    A_x = sparse(m, 3 * F * N);
-    A_x(:, (3 * F * (i - 1) + 1):(3 * F * i)) = Q;
-    A = [A; A_x, A_mu];
-    b = [b; projections(i).q];
-  end
 
+  fprintf('Building Kronecker''d filter matrix...\n');
   D = kron(speye(N), kron(D, speye(3)));
   DD = D' * D;
 
+  fprintf('Solving ADMM...\n');
   converged = false;
   num_iter = 0;
   rho = settings.rho;
@@ -37,7 +33,6 @@ function [X, mu] = find_structure_smooth_centroid(projections, use_3P, D, ...
   U = X - Z;
 
   while ~converged && num_iter < settings.max_iter
-    num_iter = num_iter + 1;
     prev_Z = Z;
 
     % Constrained least-squares.
@@ -72,13 +67,17 @@ function [X, mu] = find_structure_smooth_centroid(projections, use_3P, D, ...
 
     fprintf('%12d %12g %12g %12g\n', num_iter, rho, norm_r, norm_s);
 
-    if norm_r ~= 0 && norm_s ~= 0
-      if norm_r > settings.mu * norm_s
-        rho = rho * settings.tau_incr;
-      elseif norm_s > settings.mu * norm_r
-        rho = rho / settings.tau_decr;
+    if num_iter > 0 && num_iter < settings.max_iter / 2
+      if norm_r ~= 0 && norm_s ~= 0
+        if norm_r > settings.mu * norm_s
+          rho = rho * settings.tau_incr;
+        elseif norm_s > settings.mu * norm_r
+          rho = rho / settings.tau_decr;
+        end
       end
     end
+
+    num_iter = num_iter + 1;
   end
 
   X = X + kron(ones(F, N), mu);

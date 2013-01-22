@@ -10,16 +10,15 @@ settings = struct(...
 
 solutions = struct('points', {});
 
-num_camera_paths = size(sequences, 1);
-num_sequences = size(sequences, 2);
+num_camera_paths = size(projections, 1);
+num_sequences = size(projections, 2);
 
 % For each set of observations, reconstruct.
 for i = 1:num_camera_paths
   cameras = camera_paths(i).cameras;
 
   for j = 1:num_sequences
-    observations = sequences(i, j);
-    tracks = observations.tracks;
+    tracks = projections(i, j).tracks;
     num_tracks = length(tracks);
     mask = kinds_of_missing_data(j).mask;
     index = kinds_of_missing_data(j).index;
@@ -38,12 +37,11 @@ for i = 1:num_camera_paths
       end
     end
 
-    % Build linear systems of algebraic error.
-    fprintf('Building linear systems...\n');
-    proj_eqns = tracks_to_equations(cameras, tracks);
+    % Convert from cameras and projections to equations.
+    equations = projections_to_equations(tracks, cameras);
 
     fprintf('Solving for structure...\n');
-    solution = find_structure_centroid(proj_eqns, true, settings);
+    solution = find_structure_centroid(equations, true, settings);
     solution = shiftdim(reshape(solution, [3, num_frames, num_tracks]), 1);
     solutions(i, j).points = solution;
 

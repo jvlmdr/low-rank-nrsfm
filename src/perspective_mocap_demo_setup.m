@@ -116,19 +116,19 @@ subplot(1, 2, 2);
 plot_cameras(fig, camera_paths(2).extrinsics, 0.2);
 
 % Generate projections for each configuration.
-sequences = struct('tracks', {});
+projections = struct('tracks', {});
 
 for i = 1:length(camera_paths)
   % Project points on to cameras.
   cameras = camera_paths(i).cameras;
-  projections = camera_paths(i).projections;
+  projections_i = camera_paths(i).projections;
 
   for j = 1:length(kinds_of_missing_data)
     index = kinds_of_missing_data(j).index;
     mask = kinds_of_missing_data(j).mask;
 
-    sequences(i, j) = struct(...
-        'tracks', masked_points_to_tracks(projections(:, index, :), mask));
+    projections(i, j) = struct(...
+        'tracks', masked_points_to_tracks(projections_i(:, index, :), mask));
   end
 end
 

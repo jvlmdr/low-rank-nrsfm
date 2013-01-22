@@ -6,32 +6,32 @@
 
 function X = find_structure_differences(projections, use_3P, settings)
 
-  N = length(projections);
-  F = size(projections(1).Q, 2) / 3;
+  N = length(projections.tracks);
+  F = projections.num_frames;
 
-  % Build linear constraints from projections.
+  fprintf('Building linear systems...\n');
+  systems = projection_equations_to_trajectory_equations(projections);
+
+  D = kron(first_difference_matrix(F), speye(3));
+  P = D' * D;
 
   converged = false;
   num_iter = 0;
   rho = settings.rho;
-
-  D = kron(first_difference_matrix(F), speye(3));
-  P = D' * D;
 
   X = zeros(3 * F, N);
   Z = zeros(3 * (F - 1), N);
   U = D * X - Z;
 
   while ~converged && num_iter < settings.max_iter
-    num_iter = num_iter + 1;
     prev_Z = Z;
 
     % Constrained least-squares, independent per point.
     V = Z - U;
     for i = 1:N
       q = -D' * V(:, i);
-      A = projections(i).Q;
-      b = projections(i).q;
+      A = systems(i).A;
+      b = systems(i).b;
       m = size(A, 1);
       M = [P, A'; A, sparse(m, m)];
       x = M \ [-q; b];
@@ -61,12 +61,16 @@ function X = find_structure_differences(projections, use_3P, settings)
 
     fprintf('%12d %12g %12g %12g\n', num_iter, rho, norm_r, norm_s);
 
-    if norm_r ~= 0 && norm_s ~= 0
-      if norm_r > settings.mu * norm_s
-        rho = rho * settings.tau_incr;
-      elseif norm_s > settings.mu * norm_r
-        rho = rho / settings.tau_decr;
+    if num_iter > 0 && num_iter < settings.max_iter / 2
+      if norm_r ~= 0 && norm_s ~= 0
+        if norm_r > settings.mu * norm_s
+          rho = rho * settings.tau_incr;
+        elseif norm_s > settings.mu * norm_r
+          rho = rho / settings.tau_decr;
+        end
       end
     end
+
+    num_iter = num_iter + 1;
   end
 end
