@@ -1,20 +1,21 @@
-input_file = '../data/akhter-2008/yoga.mat';
-%input_file = '../data/cmu-mocap/09_09.mat';
-
-movie_dir = '../visualize/yoga';
-%movie_dir = '../visualize/09-09';
 image_size = [848, 480];
 dpi = 100;
+
+% Load 3D points.
+fprintf('Loading mocap data...\n');
+
+input_file = '../data/akhter-2008/yoga.mat';
+movie_dir = '../visualize/missing-data-experiment/yoga';
+points = load_akhter_mocap(input_file);
+%input_file = '../data/cmu-mocap/09_09.mat';
+%movie_dir = '../visualize/missing-data-experiment/09-09';
+%points = load_mocap(input_file);
 
 if ~exist('interactive', 'var')
   fprintf('Defaulting to non-interactive mode\n');
   interactive = false;
 end
 
-% Load 3D points.
-fprintf('Loading mocap data...\n');
-points = load_akhter_mocap(input_file);
-%points = load_mocap(input_file);
 num_frames = size(points, 1);
 num_points = size(points, 2);
 

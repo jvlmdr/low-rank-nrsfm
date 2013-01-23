@@ -1,0 +1,5 @@
+close all;
+
+missing_data_experiment_setup;
+missing_data_experiment_solve;
+missing_data_experiment_visualize;
