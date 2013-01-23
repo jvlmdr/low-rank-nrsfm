@@ -13,7 +13,8 @@
 %   - equations
 %     - A, b -- Linear system
 
-function [X, mu] = find_structure_with_translation(projections, use_3P, settings)
+function [X, mu] = find_structure_free_translation(projections, use_3P, ...
+    settings)
 
   N = length(projections.tracks);
   F = projections.num_frames;
