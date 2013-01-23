@@ -1,0 +1,5 @@
+close all;
+
+translation_experiment_setup;
+translation_experiment_solve;
+translation_experiment_visualize;
