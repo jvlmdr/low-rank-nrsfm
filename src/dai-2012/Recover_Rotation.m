@@ -60,7 +60,7 @@ r3 = cross(r1,r2);
 R_f_1 = [r1;r2;r3];
 
 if(det(R_f_1) < 0)
-    R_f_1 = - R_f_1;
+    R_f_1 = - R_f_1; % This will never happen? - Jack
 end
 
 R_Recover(1:2,:) = R_f_1(1:2,:);

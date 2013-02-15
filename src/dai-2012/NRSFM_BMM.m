@@ -142,7 +142,7 @@ for i = 1:3*nPose-3
 end
 
 %Trade-off parameter
-lambda = 1e-3; %e-3;
+lambda = 1e-3;
 
 %Closed-form solution, rank-3K as W
 S_Improved = pinv(Rsh'*Rsh + lambda*H'*H)*Rsh'*W;
@@ -180,7 +180,7 @@ settings.max_iter = 200;
 settings.epsilon_abs = 1e-3;
 settings.epsilon_rel = 1e-3;
 % Find structure using ADMM.
-S_BMM = find_structure_matrix_equality(W, sparse(Rsh), true, settings);
+S_BMM = find_structure_affine_cameras(W, R_Recover, true, settings);
 
 Shat_BMM = S_to_Shat(S_BMM,K);                   % Transform to K basis form
 

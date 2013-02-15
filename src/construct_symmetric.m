@@ -3,21 +3,19 @@
 % reshape(construct_symmetric(n) * x, [n, n]) gives the symmetric matrix.
 
 function A = construct_symmetric(n)
+  A1 = speye(n * n);
 
-A1 = eye(n * n);
+  order = reshape(1:(n * n), [n, n])';
+  A2 = A1(order, :);
 
-order = reshape(1:(n * n), [n, n])';
-A2 = A1(order, :);
+  A = 1 / 2 * (A1 + A2);
 
-A = A1 + A2;
+  % Take linearly independent rows only.
+  subset = reshape(1:(n * n), [n, n])';
+  subset = tril(subset, -1);
+  subset = squareform(subset);
+  % Invert subset.
+  subset = setdiff(1:(n * n), subset);
 
-% Take linearly independent rows only.
-subset = reshape(1:(n * n), [n, n])';
-subset = tril(subset, -1);
-subset = squareform(subset);
-% Invert subset.
-subset = setdiff(1:(n * n), subset);
-
-A = A(:, subset);
-
+  A = A(:, subset);
 end
