@@ -9,7 +9,7 @@ function [joints, sequence_files, offsets] = random_mocap_sequences(...
   n = desired_length * downsample;
 
   % Load master mocap file.
-  mocap = load([MOCAP_DIR, MASTER_FILE]);
+  mocap = load([MOCAP_DIR, INDEX_FILE]);
   num_sequences = length(mocap.all_paths);
 
   % Load each sequence and find its length.
