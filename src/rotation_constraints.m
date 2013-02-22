@@ -1,20 +1,22 @@
-function [A, c] = rotation_constraints(P_hat)
-  % P_hat is 2F x 3K.
-  F = size(P_hat, 1) / 2;
-  K = size(P_hat, 2) / 3;
+% Returns a 2F x 3K(3K+1)/2 matrix of contrains.
 
-  % P = P_hat * Q
-  % P_t = P_hat_t Q,  for all t
+function [A, c] = rotation_constraints(M_hat)
+  % M_hat is 2F x 3K.
+  F = size(M_hat, 1) / 2;
+  K = size(M_hat, 2) / 3;
 
-  % P_t P_t' = c_t^2 I
-  % P_hat_t Q Q' P_hat_t' = c_t^2 I
+  % M = M_hat * G
+  % M_t = M_hat_t G,  for all t
 
-  % Let G = Q Q', G = G', G is positive semidefinite.
-  % P_hat_t G P_hat_t' = c_t^2 I
-  % kron(P_hat_t, P_hat_t) vec(G) = vec(c_t^2 I)
+  % M_t M_t' = c_t^2 I
+  % M_hat_t G G' M_hat_t' = c_t^2 I
 
-  % [kron(P_hat_t, P_hat_t) vec(G)]_1 - [kron(P_hat_t, P_hat_t) vec(G)]_4 = 0
-  % [kron(P_hat_t, P_hat_t) vec(G)]_2 = 0
+  % Let Q = G G', Q = Q', Q is positive semidefinite.
+  % M_hat_t Q M_hat_t' = c_t^2 I
+  % kron(M_hat_t, M_hat_t) vec(Q) = vec(c_t^2 I)
+
+  % [kron(M_hat_t, M_hat_t) vec(Q)]_1 - [kron(M_hat_t, M_hat_t) vec(Q)]_4 = 0
+  % [kron(M_hat_t, M_hat_t) vec(Q)]_2 = 0
   % (Since the equations are symmetric, third constraint is redundant.)
 
   % Come back and enforce symmetry at the end.
@@ -22,13 +24,15 @@ function [A, c] = rotation_constraints(P_hat)
   A = zeros(2, F, n);
   c = zeros(n, 1);
 
-  P_hat = reshape(P_hat, [2, F, 3 * K]);
-  P_hat = permute(P_hat, [1, 3, 2]);
+  % Make row pairs of M_hat easily accessible.
+  M_hat = reshape(M_hat, [2, F, 3 * K]);
+  % [2, F, 3K] -> [2, 3K, F]
+  M_hat = permute(M_hat, [1, 3, 2]);
 
   H = construct_symmetric(3 * K);
 
   for t = 1:F
-    A_t = kron(P_hat(:, :, t), P_hat(:, :, t));
+    A_t = kron(M_hat(:, :, t), M_hat(:, :, t));
     % Convert to symmetric.
     A_t = A_t * H;
     % Append to system.

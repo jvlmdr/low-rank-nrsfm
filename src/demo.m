@@ -1,5 +1,7 @@
 clear;
 close all;
+rng('default');
+
 mocap_file = '../data/akhter-2008/yoga.mat';
 K = 8;
 
@@ -38,7 +40,7 @@ B = U;
 B = k_unreshape(B, 3);
 % C is F x K.
 C = V * D;
-P = R * kron(C, eye(3));
+M = R * kron(C, eye(3));
 
 % Project.
 W = R * S;
@@ -51,15 +53,29 @@ d = diag(D);
 d = d(1:3 * K);
 
 % Get initial factorization.
-P_hat = 1 / sqrt(d(1)) * U * diag(sqrt(d));
+M_hat = 1 / sqrt(d(1)) * U * diag(sqrt(d));
 B_hat = sqrt(d(1)) * diag(sqrt(d)) * V';
 
+subset = randperm(F);
+subset = subset(1:K);
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Xiao 2004
+
 % Solve for corrective matrix.
-Rs_hat = find_rotations(P_hat, 1e6);
-%Rs_hat = find_rotations_dai(P_hat);
-% Align cameras.
-Rs_tilde = align_rotations(Rs_hat, Rs);
-fprintf('Rotation error = %g\n', norm(Rs_tilde - Rs, 'fro') / norm(Rs, 'fro'));
+[G, Rs_hat, C_hat] = find_corrective_transform_xiao_2004_linear(M_hat, subset);
+% Recover structure.
+S_xiao = kron(C_hat, eye(3)) * inv(G) * B_hat;
+fprintf('3D error (Xiao 2004) = %g\n', min_shape_error(S, S_xiao));
+
+fprintf('Any key to continue\n');
+pause;
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Modified solution for cameras of Dai 2012
+
+Rs_hat = find_rotations(M_hat, 1e6);
+%Rs_hat = find_rotations_dai(M_hat);
 
 % Convert to block-diagonal.
 R_hat = mat2cell(Rs_hat, 2 * ones(F, 1), 3);
@@ -69,18 +85,9 @@ R_hat = blkdiag(R_hat{:});
 fprintf('Any key to continue\n');
 pause;
 
-fprintf('Linear solution...\n');
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Dai 2012 solution for structure
 
-[Q, C] = find_corrective_matrix(P_hat, R_hat);
-S_linear = kron(C, eye(3)) * inv(Q) * B_hat;
-
-fprintf('Reprojection error = %g\n', ...
-    norm(W - R_hat * S_linear, 'fro') / norm(W, 'fro'));
-fprintf('3D error = %g\n', ...
-    norm(S - align_structure(S_linear, S), 'fro') / norm(S, 'fro'));
-
-fprintf('Any key to continue\n');
-pause;
 fprintf('Nuclear norm solution...\n');
 
 % Find structure.
@@ -95,11 +102,21 @@ S_nuclear = find_structure_affine_cameras(W, Rs_hat, true, ...
       'epsilon_rel', 1e-3, ...
       'min_rho_iter', 4));
 
-fprintf('Reprojection error = %g\n', ...
+fprintf('Reprojection error (linear) = %g\n', ...
     norm(W - R_hat * S_nuclear, 'fro') / norm(W, 'fro'));
-fprintf('3D error = %g\n', ...
-    norm(S - align_structure(S_nuclear, S), 'fro') / norm(S, 'fro'));
+fprintf('3D error (nuclear norm) = %g\n', min_shape_error(S, S_nuclear));
 
-fprintf('Difference between solutions = %g\n', ...
-    norm(S_linear - align_structure(S_nuclear, S_linear), 'fro') / ...
-      sqrt(norm(S_linear, 'fro') * norm(S_linear, 'fro')));
+fprintf('Any key to continue\n');
+pause;
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Our solution for structure using the nullspace
+
+fprintf('Linear solution...\n');
+
+[G, C] = find_corrective_matrix(M_hat, R_hat);
+S_linear = kron(C, eye(3)) * inv(G) * B_hat;
+
+fprintf('Reprojection error (linear) = %g\n', ...
+    norm(W - R_hat * S_linear, 'fro') / norm(W, 'fro'));
+fprintf('3D error (linear) = %g\n', min_shape_error(S, S_linear));

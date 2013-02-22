@@ -45,33 +45,6 @@ function R = find_rotations(P_hat, lambda)
   % Find nearest rotation matrices and coefficients.
   [R, c] = nearest_scaled_rotation_matrices(P);
 
-%  % Negate where required.
-%  for t = 1:F - 1
-%    R1 = R(:, :, t);
-%    R2 = R(:, :, t + 1);
-%    k1 = cross(R1(1, :), R1(2, :));
-%    k2 = cross(R2(1, :), R2(2, :));
-%    R1 = [R1; k1];
-%    R2 = [R2; k2];
-%
-%    theta(t) = acos((trace(R2' * R1) - 1) / 2) * 180 / pi;
-%
-%    if theta(t) > 90
-%      R(:, :, t + 1) = -R(:, :, t + 1);
-%    end
-%  end
-
-  % Negate where required.
-  for t = 1:F - 1
-    k1 = cross(R(1, :, t), R(2, :, t));
-    k2 = cross(R(1, :, t + 1), R(2, :, t + 1));
-
-    if dot(k1, k2) < 0
-      warning('Flipping sign of cameras');
-      R(:, :, t + 1) = -R(:, :, t + 1);
-    end
-  end
-
   % [2, 3, F] -> [2, F, 3] -> [2F, 3]
   R = reshape(permute(R, [1, 3, 2]), [2 * F, 3]);
 end
