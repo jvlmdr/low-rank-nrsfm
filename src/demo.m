@@ -66,7 +66,12 @@ subset = subset(1:K);
 [G, Rs_hat, C_hat] = find_corrective_transform_xiao_2004_linear(M_hat, subset);
 % Recover structure.
 S_xiao = kron(C_hat, eye(3)) * inv(G) * B_hat;
-fprintf('3D error (Xiao 2004) = %g\n', min_shape_error(S, S_xiao));
+
+% [3F, P] -> [3, F, P] -> [F, P, 3]
+points_xiao = S_xiao;
+points_xiao = reshape(points_xiao, [3, F, P]);
+points_xiao = permute(points_xiao, [2, 3, 1]);
+fprintf('3D error (Xiao 2004) = %g\n', min_shape_error(points, points_xiao));
 
 fprintf('Any key to continue\n');
 pause;
@@ -102,9 +107,13 @@ S_nuclear = find_structure_affine_cameras(W, Rs_hat, true, ...
       'epsilon_rel', 1e-3, ...
       'min_rho_iter', 4));
 
-fprintf('Reprojection error (linear) = %g\n', ...
+points_nuclear = S_nuclear;
+points_nuclear = reshape(points_nuclear, [3, F, P]);
+points_nuclear = permute(points_nuclear, [2, 3, 1]);
+
+fprintf('Reprojection error (nuclear) = %g\n', ...
     norm(W - R_hat * S_nuclear, 'fro') / norm(W, 'fro'));
-fprintf('3D error (nuclear norm) = %g\n', min_shape_error(S, S_nuclear));
+fprintf('3D error (nuclear) = %g\n', min_shape_error(points, points_nuclear));
 
 fprintf('Any key to continue\n');
 pause;
@@ -117,6 +126,10 @@ fprintf('Linear solution...\n');
 [G, C] = find_corrective_matrix(M_hat, R_hat);
 S_linear = kron(C, eye(3)) * inv(G) * B_hat;
 
+points_linear = S_linear;
+points_linear = reshape(points_linear, [3, F, P]);
+points_linear = permute(points_linear, [2, 3, 1]);
+
 fprintf('Reprojection error (linear) = %g\n', ...
     norm(W - R_hat * S_linear, 'fro') / norm(W, 'fro'));
-fprintf('3D error (linear) = %g\n', min_shape_error(S, S_linear));
+fprintf('3D error (linear) = %g\n', min_shape_error(points, points_linear));

@@ -1,24 +1,12 @@
-% Projects 3D points to 2D points.
-%
 % Parameters:
-% points -- num_frames x num_points x 3
+% P -- 4 x 3 projection matrix.
+% X -- 3 x N matrix of N 3D points.
+%
+% Returns:
+% 2 x N matrix of N 2D points.
 
-function projections = project(cameras, points)
-  num_frames = size(points, 1);
-  num_points = size(points, 2);
-
-  for i = 1:num_frames
-    % Get points in this frame.
-    % size(X) => [3, num_points]
-    X = shiftdim(points(i, :, :), 1)';
-
-    % Make homogeneous.
-    X = [X; ones(1, num_points)];
-    % Project.
-    W = cameras(:, :, i) * X;
-    % Make inhomogeneous.
-    W = W(1:2, :) * spdiags(1 ./ W(3, :)', 0, num_points, num_points);
-
-    projections(i, :, :) = W';
-  end
+function W = project(P, X)
+  X = vec2hom(X);
+  W = P * X;
+  W = hom2vec(W);
 end

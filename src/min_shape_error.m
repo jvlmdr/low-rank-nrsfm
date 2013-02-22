@@ -1,15 +1,13 @@
 % Parameters:
-% S, X -- 3F x P non-rigid shape
+% S, X -- F x P x 3 non-rigid shape
 
 function residual = min_shape_error(S, X)
-  F = size(S, 1) / 3;
+  F = size(S, 1);
   P = size(S, 2);
 
-  % [3F, P] -> [3, F, P] -> [P, 3, F]
-  S = reshape(S, [3, F, P]);
-  S = permute(S, [3, 1, 2]);
-  X = reshape(X, [3, F, P]);
-  X = permute(X, [3, 1, 2]);
+  % [F, P, 3] -> [P, 3, F]
+  S = permute(S, [2, 3, 1]);
+  X = permute(X, [2, 3, 1]);
 
   residual = 0;
   total = 0;
