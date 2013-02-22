@@ -1,16 +1,15 @@
-function points = load_mocap(input_file)
-  % Load 3D points.
-  data = load(input_file);
+function joints = load_mocap(filename)
+  % Load experiment data.
+  mocap = load(filename);
 
-  num_frames = length(data.all_points);
-  num_points = size(data.all_points(1).pts, 2);
+  % Number of frames in experiment.
+  num_frames = length(mocap.all_points);
+  % Number of points in experiment.
+  num_joints = length(mocap.segment_order);
 
-  points = zeros(3, num_points, num_frames);
-  for t = 1:num_frames
-    points(:, :, t) = data.all_points(t).pts;
+  % Extract joints into one big matrix.
+  joints = zeros(num_frames, num_joints, 3);
+  for i = 1:num_frames
+    joints(i, :, :) = mocap.all_points(i).pts';
   end
-
-  points = permute(points, [3, 2, 1]);
-
-  points = points / 1e3;
 end
