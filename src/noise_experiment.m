@@ -1,13 +1,13 @@
-num_frames = 200;
-num_sequences = 8;
+num_frames = 256;
+num_sequences = 32;
 downsample = 8;
 
 omega_stddev = 5 * pi / 180;
-scale_stddev = 1.1;
+scale_stddev = sqrt(2);
 
 % Load some mocap sequences.
 if ~exist('../data/mocap-data.mat', 'file')
-  sequences = random_mocap_sequences(NUM_FRAMES, NUM_SEQUENCES, DOWNSAMPLE, 42);
+  sequences = random_mocap_sequences(num_frames, num_sequences, downsample, 42);
   save('../data/mocap-data', 'sequences');
 else
   data = load('../data/mocap-data');
@@ -17,7 +17,8 @@ end
 % In case these parameters differed in file which we loaded.
 num_frames = size(sequences, 1);
 num_points = size(sequences, 2);
-num_sequences = size(sequences, 4);
+num_sequences = min(num_sequences, size(sequences, 4));
+sequences = sequences(:, :, :, 1:num_sequences);
 
 K = 4;
 
