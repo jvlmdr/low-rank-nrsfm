@@ -44,7 +44,4 @@ function R = find_rotations(P_hat, lambda)
 
   % Find nearest rotation matrices and coefficients.
   [R, c] = nearest_scaled_rotation_matrices(P);
-
-  % [2, 3, F] -> [2, F, 3] -> [2F, 3]
-  R = reshape(permute(R, [1, 3, 2]), [2 * F, 3]);
 end

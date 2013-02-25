@@ -5,15 +5,13 @@
 %
 % Parameters:
 % W -- 2F x P
-% R -- 2F x 3
+% R -- 2 x 3 x F
 
 function X = find_structure_affine_cameras(W, R, use_3P, settings)
-
   N = size(W, 2);
-  F = size(R, 1) / 2;
+  F = size(R, 3);
 
   W = reshape(W, [2, F, N]);
-  R = permute(reshape(R, [2, F, 3]), [1, 3, 2]);
 
   % Build systems of equations.
   projections = struct('num_frames', F);

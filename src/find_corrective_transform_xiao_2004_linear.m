@@ -4,13 +4,14 @@
 %
 % Returns:
 % G -- 3K x 3K corrective transform.
-% Rs -- 2F x 3 rotation matrices.
+% Rs -- 2 x 3 x F rotation matrices.
 % C -- F x K coefficient matrix.
 
 function [G, Rs, C] = find_corrective_transform_xiao_2004_linear(M_hat, subset)
   % M_hat is 2F x 3K.
   F = size(M_hat, 1) / 2;
   K = size(M_hat, 2) / 3;
+  n = 3 * K * (3 * K + 1) / 2;
 
   % Make subset of K frames first.
   not_subset = setdiff(1:F, subset);
@@ -31,9 +32,10 @@ function [G, Rs, C] = find_corrective_transform_xiao_2004_linear(M_hat, subset)
 
   for k = 1:K
     % Build linear system.
-    [A, b] = rotation_and_basis_constraints(M_hat, k);
+    [A, c] = rotation_and_basis_constraints(M_hat, k);
     % Solve linear system.
-    q = A \ b;
+    q = [A' * A, c; c', 0] \ [zeros(n, 1); 1];
+    q = q(1:n);
     % Construct symmetric matrix.
     Q = reshape(H * q, [3 * K, 3 * K]);
 
@@ -62,8 +64,4 @@ function [G, Rs, C] = find_corrective_transform_xiao_2004_linear(M_hat, subset)
 
   % [3K, 3, K] -> [3K, 3K]
   G = reshape(G, [3 * K, 3 * K]);
-
-  % [2, 3, F] -> [2F, 3]
-  Rs = permute(Rs, [1, 3, 2]);
-  Rs = reshape(Rs, [2 * F, 3]);
 end

@@ -84,6 +84,8 @@ function [G, Rs, C] = align_corrective_triples(M_hat, G)
 
     % Pick between ambiguous Procrustes solutions.
     residuals = mean(residuals);
+    fprintf('Ambiguous Procrustes residuals: %g, %g\n', min(residuals), ...
+        max(residuals));
     [residual, arg] = min(residuals);
     E = E(:, :, arg);
     signs = signs(:, arg);

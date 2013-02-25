@@ -9,7 +9,7 @@ function scene = generate_scene_for_sequence(points, omega_stddev, ...
   num_points = size(points, 2);
 
   % Angular change in each frame.
-  omegas = randn(num_frames, 1);
+  omegas = omega_stddev * randn(num_frames, 1);
   % Angle in each frame.
   thetas = cumsum(omegas) + rand() * 2 * pi;
   % Scale in each frame.

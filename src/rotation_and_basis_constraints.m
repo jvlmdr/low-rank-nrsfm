@@ -1,7 +1,7 @@
 % Returns a m x 3K(3K+1)/2 system of orthogonality and basis constraints
 % with m = F(K-1) - K(K-1)/2 = (2F-K)(K-1)/2 the number of constraints.
 
-function [A, b] = rotation_and_basis_constraints(M_hat, k)
+function [A, c] = rotation_and_basis_constraints(M_hat, k)
   % M_hat is 2F x 3K.
   F = size(M_hat, 1) / 2;
   K = size(M_hat, 2) / 3;
@@ -19,13 +19,12 @@ function [A, b] = rotation_and_basis_constraints(M_hat, k)
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   % Pairs (t, t) such that t <= K.
 
-  A_inside = zeros(3, n, K);
-  b_inside = zeros(3, K);
+  A_inside = zeros(3, n, K - 1);
 
-  for t = 1:K
+  for t = [1:(k - 1), (k + 1):K]
     % [M_hat_t Q M_hat_t'] = c_tk I, with c_tk = delta[t - k].
     c_tk = double(t == k);
-    % LHS is symmetric.
+    % Equation is symmetric.
 
     % [kron(M_hat_t, M_hat_t) vec(Q)]_1 = c_tk
     % [kron(M_hat_t, M_hat_t) vec(Q)]_2 = 0
@@ -34,25 +33,27 @@ function [A, b] = rotation_and_basis_constraints(M_hat, k)
     % Convert to symmetric parametrization.
     A_t = A_t * H;
 
-    % Append to system.
-    A_inside(:, :, t) = [A_t(1, :); A_t(2, :); A_t(4, :)];
-    b_inside(:, t) = [c_tk; 0; c_tk];
+    A = [A_t(1, :); A_t(2, :); A_t(4, :)];
+
+    if t < k
+      A_inside(:, :, t) = A;
+    else
+      A_inside(:, :, t - 1) = A;
+    end
   end
 
   % [3, n, K] -> [3, K, n] -> [3K, n]
   A_inside = permute(A_inside, [1, 3, 2]);
-  A_inside = reshape(A_inside, [3 * K, n]);
-  b_inside = b_inside(:);
+  A_inside = reshape(A_inside, [3 * (K - 1), n]);
 
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   % Pairs (t, t) such that t > K.
 
-  A_outside = zeros(2, n, F - K);
-  b_outside = zeros(2, F - K);
+  A_outside = zeros(2, n, F - K + 1);
 
-  for t = (K + 1):F
+  for t = [k, (K + 1):F]
     % [M_hat_t Q M_hat_t'] = c_tk I, with c_tk unknown.
-    % LHS is symmetric.
+    % Equation is symmetric.
 
     % [kron(M_hat_t, M_hat_t) vec(Q)]_1 - [kron(M_hat_t, M_hat_t) vec(Q)]_4 = 0
     % [kron(M_hat_t, M_hat_t) vec(Q)]_2 = 0
@@ -60,15 +61,22 @@ function [A, b] = rotation_and_basis_constraints(M_hat, k)
     % Convert to symmetric parametrization.
     A_t = A_t * H;
 
+    A = [A_t(1, :) - A_t(4, :); A_t(2, :)];
+
     % Append to system.
-    A_outside(:, :, t - K) = [A_t(1, :) - A_t(4, :); A_t(2, :)];
-    b_outside(:, t - K) = [0; 0];
+    if t <= K
+      A_outside(:, :, 1) = A;
+
+      % Magnitude constraint.
+      c = A_t(1, :)';
+    else
+      A_outside(:, :, t - K + 1) = A;
+    end
   end
 
   % [2, n, F-K] -> [2, F-K, n] -> [2(F-K), n]
   A_outside = permute(A_outside, [1, 3, 2]);
-  A_outside = reshape(A_outside, [2 * (F - K), n]);
-  b_outside = b_outside(:);
+  A_outside = reshape(A_outside, [2 * (F - K + 1), n]);
 
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   % Unique unordered pairs (t, u), t != u, such that at least one of t, u
@@ -76,7 +84,6 @@ function [A, b] = rotation_and_basis_constraints(M_hat, k)
 
   m = (K - 1) * K / 2 + (K - 1) * (F - K);
   A_cross = zeros(4, n, m);
-  b_cross = zeros(4, m);
   i = 1;
 
   for t = [1:(k - 1), (k + 1):K]
@@ -97,7 +104,6 @@ function [A, b] = rotation_and_basis_constraints(M_hat, k)
 
       % Append to system.
       A_cross(:, :, i) = A_tu;
-      b_cross(:, i) = zeros(4, 1);
       i = i + 1;
     end
   end
@@ -105,8 +111,6 @@ function [A, b] = rotation_and_basis_constraints(M_hat, k)
   % [4, n, m] -> [4, m, n] -> [4m, n]
   A_cross = permute(A_cross, [1, 3, 2]);
   A_cross = reshape(A_cross, [4 * m, n]);
-  b_cross = b_cross(:);
 
   A = [A_inside; A_outside; A_cross];
-  b = [b_inside; b_outside; b_cross];
 end

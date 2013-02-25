@@ -21,12 +21,10 @@ function S = reconstruct_nullspace(W, K)
   M_hat = 1 / sqrt(d(1)) * U * diag(sqrt(d));
   B_hat = sqrt(d(1)) * diag(sqrt(d)) * V';
 
+  % Solve for rotations using a single triple.
   Rs = find_rotations(M_hat, 1e6);
-  % Convert to block-diagonal.
-  R = mat2cell(Rs, 2 * ones(F, 1), 3);
-  R = cellfun(@sparse, R, 'UniformOutput', false);
-  R = blkdiag(R{:});
 
+  R = block_diagonal_cameras(Rs);
   [G, C] = find_corrective_matrix(M_hat, R);
   S = kron(C, eye(3)) * inv(G) * B_hat;
 

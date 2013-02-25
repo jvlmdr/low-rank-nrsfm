@@ -43,5 +43,6 @@ function [A, c] = rotation_constraints(M_hat)
       c = A_t(1, :)';
     end
   end
+
   A = reshape(A, [2 * F, n]);
 end
