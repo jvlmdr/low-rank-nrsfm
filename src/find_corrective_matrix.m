@@ -2,14 +2,14 @@
 %
 % Parameters:
 % M_hat -- 2F x 3K matrix from SVD.
-% R -- 2F x 3F matrix of cameras.
+% Rs -- 2 x 3 x F matrix of cameras.
 
-function [G, C] = find_corrective_matrix(M_hat, R)
+function [G, C] = find_corrective_matrix(M_hat, Rs)
 
   F = size(M_hat, 1) / 2;
   K = size(M_hat, 2) / 3;
 
-  % Find C and G that minimize || M_hat G - R kron(C, I) ||
+  % Find G and C that minimize || M_hat G - R kron(C, I) ||
 
   % (R kron(C, I))'
   %   = kron(C', I) R'
@@ -20,6 +20,8 @@ function [G, C] = find_corrective_matrix(M_hat, R)
   % vec[(R kron(C, I))']
   %   = [kron(I, R1) c; ...; kron(I, Rn) c]
   %   = [kron(I, R1); ...; kron(I, Rn)] c
+
+  R = block_diagonal_cameras(Rs);
 
   % Extract rows of R.
   r = mat2cell(R, ones(2 * F, 1), 3 * F);

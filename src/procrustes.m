@@ -3,6 +3,12 @@
 
 function R = procrustes(A, B)
   M = A' * B;
+
   [U, S, V] = svd(M);
-  R = U * V';
+
+  if min(size(M)) == 2
+    R = U(:, 1:2) * V';
+  else
+    R = U * V';
+  end
 end
