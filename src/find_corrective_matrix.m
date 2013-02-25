@@ -1,15 +1,15 @@
-% Recovers corrective matrix and basis coefficients given R and P_hat.
+% Recovers corrective matrix and basis coefficients given R and M_hat.
 %
 % Parameters:
-% P_hat -- 2F x 3K matrix from SVD.
+% M_hat -- 2F x 3K matrix from SVD.
 % R -- 2F x 3F matrix of cameras.
 
-function [Q, C] = find_corrective_matrix(P_hat, R)
+function [G, C] = find_corrective_matrix(M_hat, R)
 
-  F = size(P_hat, 1) / 2;
-  K = size(P_hat, 2) / 3;
+  F = size(M_hat, 1) / 2;
+  K = size(M_hat, 2) / 3;
 
-  % Find C and Q that minimize || P_hat Q - R kron(C, I) ||
+  % Find C and G that minimize || M_hat G - R kron(C, I) ||
 
   % (R kron(C, I))'
   %   = kron(C', I) R'
@@ -33,14 +33,14 @@ function [Q, C] = find_corrective_matrix(P_hat, R)
   order = reshape(reshape(order, [3, 2 * F])', [6 * F, 1]);
   A_c = A_c(order, :);
 
-  % Build matrix for Q.
-  A_q = kron(speye(3), P_hat);
+  % Build matrix for G.
+  A_q = kron(speye(3), M_hat);
 
   % Assemble full system.
   A = [A_q, -A_c];
 
   [U, S, V] = svd(full(A));
-  Q = V(1:(9 * K), (end - K + 1):end);
-  Q = reshape(Q, [3 * K, 3 * K]);
+  G = V(1:(9 * K), (end - K + 1):end);
+  G = reshape(G, [3 * K, 3 * K]);
   C = V((9 * K + 1):end, (end - K + 1):end);
 end
