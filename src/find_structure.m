@@ -81,5 +81,5 @@ function X = find_structure(projections, use_3P, settings)
     num_iter = num_iter + 1;
   end
 
-  X = reshape(X, [3 * F, N]);
+  X = reshape(Z, [3 * F, N]);
 end

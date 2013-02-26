@@ -4,7 +4,7 @@ rng('default');
 
 K = 4;
 scale_stddev = sqrt(2);
-use_akhter_data = true;
+use_akhter_data = false;
 
 if use_akhter_data
   % Load mocap sequence.
