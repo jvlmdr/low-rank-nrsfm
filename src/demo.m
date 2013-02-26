@@ -2,35 +2,44 @@ clear;
 close all;
 rng('default');
 
-K = 8;
+K = 4;
 scale_stddev = sqrt(2);
+use_akhter_data = true;
 
-%% Load mocap sequence.
-%data = load('../data/mocap-data.mat');
-%F = size(data.sequences, 1);
-%P = size(data.sequences, 2);
-%points = data.sequences(:, :, :, 1);
-%% Generate camera motion.
-%scene = generate_scene_for_sequence(points, 20 * 180 / pi, 1);
-%
-%% [F, P, 3] -> [3, F, P] -> [3F, P]
-%S = points;
-%S = permute(S, [3, 1, 2]);
-%S = reshape(S, [3 * F, P]);
+if use_akhter_data
+  % Load mocap sequence.
+  mocap_file = '../data/akhter-2008/yoga.mat';
+  load(mocap_file, 'S', 'Rs');
+  F = size(Rs, 1) / 2;
+  P = size(S, 2);
 
-% Load mocap sequence.
-mocap_file = '../data/akhter-2008/yoga.mat';
-load(mocap_file, 'S', 'Rs');
-F = size(Rs, 1) / 2;
-P = size(S, 2);
+  % [2F, 3] -> [2, F, 3] -> [2, 3, F]
+  Rs = reshape(Rs, [2, F, 3]);
+  Rs = permute(Rs, [1, 3, 2]);
 
-% [2F, 3] -> [2, F, 3] -> [2, 3, F]
-Rs = reshape(Rs, [2, F, 3]);
-Rs = permute(Rs, [1, 3, 2]);
+  % Scale each frame.
+  scales = exp(log(scale_stddev) * randn(F, 1));
+  Rs = bsxfun(@times, Rs, reshape(scales, [1, 1, F]));
+else
+  % Load mocap sequence.
+  data = load('../data/mocap-data.mat');
+  F = size(data.sequences, 1);
+  P = size(data.sequences, 2);
+  points = data.sequences(:, :, :, 1);
+  % Generate camera motion.
+  scene = generate_scene_for_sequence(points, 20 * 180 / pi, scale_stddev);
 
-% Scale each frame.
-scales = exp(log(scale_stddev) * randn(F, 1));
-Rs = bsxfun(@times, Rs, reshape(scales, [1, 1, F]));
+  % Extract cameras.
+  Rs = zeros(2, 3, F);
+  for t = 1:F
+    Rs(:, :, t) = scene.cameras(t).P(1:2, 1:3);
+  end
+
+  % [F, P, 3] -> [3, F, P] -> [3F, P]
+  S = points;
+  S = permute(S, [3, 1, 2]);
+  S = reshape(S, [3 * F, P]);
+end
 
 % Build block-diagonal rotation matrix.
 R = block_diagonal_cameras(Rs);
@@ -55,16 +64,6 @@ S = S + mu * ones(P, 1)';
 points = S;
 points = reshape(points, [3, F, P]);
 points = permute(points, [2, 3, 1]);
-
-%% Find basis and coefficients such that S = kron(C, eye(3)) * B.
-%% Note these are not unique.
-%% B is 3N x K basis.
-%B = U;
-%% Unreshape to P x 3K.
-%B = k_unreshape(B, 3);
-%% C is F x K.
-%C = V * D;
-%M = R * kron(C, eye(3));
 
 % Project.
 W = R * S;
@@ -150,7 +149,7 @@ pause;
 
 fprintf('Linear solution...\n');
 
-[G, C] = find_corrective_matrix(M_hat, R_hat);
+[G, C] = find_corrective_matrix(M_hat, Rs_hat);
 S_linear = kron(C, eye(3)) * inv(G) * B_hat;
 
 % [3F, P] -> [3, F, P] -> [F, P, 3]
