@@ -65,3 +65,20 @@ else
   warning('Could not find pararrayfun(), running in series.');
   results = arrayfun(trial, projections);
 end
+
+% Solve reconstruction using each method.
+residuals = zeros(num_sequences, num_solvers, num_ranks);
+
+for i = 1:num_sequences
+  scene = scenes(i);
+  for j = 1:num_solvers
+    solver = solvers(j);
+    for k = 1:num_ranks
+      K = ranks(k);
+      solution = results(i).solvers(j, k);
+      residuals(i, j, k) = min_shape_error(scene.points, solution.points);
+    end
+  end
+end
+
+save('../output/summary', 'residuals');
