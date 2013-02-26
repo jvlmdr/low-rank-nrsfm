@@ -41,7 +41,6 @@ num_solvers = numel(solvers);
 num_ranks = numel(ranks);
 
 % Construct a K-specific solver for each method.
-% Note this is a violation of the solver interface.
 solvers_cross_ranks(num_solvers, num_ranks) = struct('solve', []);
 for i = 1:num_solvers
   solver = solvers(i);
@@ -81,4 +80,4 @@ for i = 1:num_sequences
   end
 end
 
-save('../output/summary', 'residuals');
+save('../output/summary', 'residuals', 'solvers', 'ranks');
