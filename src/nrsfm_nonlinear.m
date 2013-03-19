@@ -37,7 +37,8 @@ function [R, S, B, C] = nrsfm_nonlinear(W, R_init, S_init, K, max_iter, tol)
   % K x F coefficients
   C_init = D(1:K, 1:K) * V(:, 1:K)';
 
-  % Compute initial residual for debug purposes.
+  % Compute initial residual for debug purposes. Should reassure us that
+  % quaternion conversion worked and matrices are being addressed correctly.
   W_mat = reshape(permute(W, [1, 3, 2]), [2 * F, P]);
   R_mat = block_diagonal_cameras(R_init);
   B_mat = reshape(permute(B_init, [1, 3, 2]), [3 * P, K]);
