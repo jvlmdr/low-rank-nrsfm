@@ -8,7 +8,7 @@
 % R -- 2 x 3 x F
 % S -- 3 x P x F
 
-function [R, S] = nrsfm_nonlinear(W, R_init, S_init, K)
+function [R, S] = nrsfm_nonlinear(W, R_init, S_init, K, max_iter, tol)
   P = size(W, 2);
   F = size(W, 3);
 
@@ -30,7 +30,17 @@ function [R, S] = nrsfm_nonlinear(W, R_init, S_init, K)
   C_init = D(1:K, 1:K) * V(:, 1:K)';
 
   % Solve.
-  [Q, B, C] = nrsfm_nonlinear_mex(W, Q_init, B_init, C_init);
+  [Q, B, C] = nrsfm_nonlinear_mex(W, Q_init, B_init, C_init, max_iter, tol);
 
-  keyboard;
+  % Compose structure.
+  B = reshape(permute(B, [1, 3, 2]), [3 * P, K]);
+  S = B * C;
+  S = reshape(S, [3, P, F]);
+
+  % Convert back to rotation matrices.
+  R = zeros(2, 3, F);
+  for t = 1:F
+    Rt = quat2rot(Q(:, t));
+    R(:, :, t) = Rt(1:2, :);
+  end
 end

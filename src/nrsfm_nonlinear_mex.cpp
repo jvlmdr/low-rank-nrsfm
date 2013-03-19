@@ -9,111 +9,12 @@
 using std::vector;
 using boost::scoped_array;
 
-//class UnitVectorParameterization : public ceres::LocalParameterization {
-//  public:
-//    UnitVectorParameterization(int n) : n_(n), x_(), A_() {}
-//    ~UnitVectorParameterization() {}
-//
-//    bool Plus(const double* x, const double* delta, double* x_prime) const {
-//      update(x);
-//
-//      // Matrix multiplication.
-//      for (int i = 0; i < n_; i += 1) {
-//        x_prime[i] = x[i];
-//        for (int j = 0; j < n_ - 1; j += 1) {
-//          x_prime[i] += A_[(n_ - 1) * i + j] * delta[j];
-//        }
-//      }
-//
-//      // Compute norm.
-//      double norm = 0;
-//      for (int i = 0; i < n_; i += 1) {
-//        norm += x_prime[i] * x_prime[i];
-//      }
-//      norm = std::sqrt(norm);
-//
-//      // Normalize.
-//      for (int i = 0; i < n_; i += 1) {
-//        x_prime[i] = x_prime[i] / norm;
-//      }
-//    }
-//
-//    bool ComputeJacobian(const double* x, double* jacobian) const {
-//      update(x);
-//      std::copy(A_.begin(), A_.end(), jacobian);
-//    }
-//
-//    int GlobalSize() const {
-//      return n_;
-//    }
-//
-//    int LocalSize() const {
-//      return n_ - 1;
-//    }
-//
-//  private:
-//    void recompute() const {
-//      const int nlhs = 3;
-//      mxArray* U = mxCreateDoubleMatrix(1, 1, mxREAL);
-//      mxArray* S = mxCreateDoubleMatrix(1, n_, mxREAL);
-//      mxArray* V = mxCreateDoubleMatrix(n_, n_, mxREAL);
-//      mxArray* plhs[nlhs] = { U, S, V };
-//
-//      const int nrhs = 1;
-//      mxArray* X = mxCreateDoubleMatrix(1, n_, mxREAL);
-//      std::copy(x_.begin(), x_.end(), mxGetPr(X));
-//      mxArray* prhs[nrhs] = { X };
-//
-//      // Compute SVD.
-//      mexCallMATLAB(nlhs, plhs, nrhs, prhs, "svd");
-//
-//      // Copy out n_ - 1 smallest right singular vectors.
-//      A_.assign(mxGetPr(V) + n_, mxGetPr(V) + n_ * n_);
-//
-//      mxDestroyArray(U);
-//      mxDestroyArray(S);
-//      mxDestroyArray(V);
-//    }
-//
-//    void update(const double* x) const {
-//      bool need_recompute;
-//
-//      if (x_.empty()) {
-//        x_.assign(n_, 0);
-//        need_recompute = true;
-//      } else {
-//        need_recompute = false;
-//
-//        for (int i = 0; i < n_ && !need_recompute; i += 1) {
-//          if (x_[i] != x[i]) {
-//            need_recompute = true;
-//          }
-//        }
-//      }
-//
-//      if (need_recompute) {
-//        std::cerr << "Recomputing tangent plane" << std::endl;
-//        recompute();
-//      } else {
-//        std::cerr << "Using cached tangent plane" << std::endl;
-//      }
-//    }
-//
-//    int n_;
-//
-//    // Cache previous tangent plane.
-//    mutable vector<double> x_;
-//    mutable vector<double> A_;
-//};
-
 class ProjectionResidual {
   public:
     // rotation -- Camera rotation as normalized quaternion, 4 vector
     // point -- World point, 3 vector
     template<class T>
-    bool operator()(const T* const q,
-                    const T* const x,
-                    T* residual) {
+    bool operator()(const T* const q, const T* const x, T* residual) {
       // Rotate point.
       T p[3];
       QuaternionRotatePoint(q, x, p);
@@ -156,8 +57,8 @@ class BasisFunction : public ceres::CostFunction {
       // Matrix multiplication.
       for (int k = 0; k < K_; k += 1) {
         for (int d = 0; d < 3; d += 1) {
-          // Row major
-          int dk = d * K_ + k;
+          // 3 x K column major, K x 3 row major
+          int dk = k * 3 + d;
           residuals[d] += basis[dk] * coeff[k];
         }
       }
@@ -169,25 +70,27 @@ class BasisFunction : public ceres::CostFunction {
         if (jac_basis != NULL) {
           int n = 3 * 3 * K_;
           std::fill(jac_basis, jac_basis + n, 0.);
+
+          for (int k = 0; k < K_; k += 1) {
+            for (int d = 0; d < 3; d += 1) {
+              // 3 x (K x 3) row major
+              int dkd = (d * K_ + k) * 3 + d;
+              jac_basis[dkd] += coeff[k];
+            }
+          }
         }
 
         if (jac_coeff != NULL) {
           int n = 3 * K_;
           std::fill(jac_coeff, jac_coeff + n, 0.);
-        }
 
-        for (int k = 0; k < K_; k += 1) {
-          for (int d = 0; d < 3; d += 1) {
-            if (jac_basis != NULL) {
-              // 3 x (3 x K), row major
-              int ddk = (d * 3 + d) * K_ + k;
-              jac_basis[ddk] = coeff[k];
-            }
-
-            if (jac_coeff != NULL) {
-              // 3 x K, row major
+          for (int k = 0; k < K_; k += 1) {
+            for (int d = 0; d < 3; d += 1) {
+              // Jacobian is 3 x K row major
               int dk = d * K_ + k;
-              jac_coeff[dk] = basis[dk];
+              // Basis is 3 x K column major
+              int kd = k * 3 + d;
+              jac_coeff[dk] += basis[kd];
             }
           }
         }
@@ -291,27 +194,34 @@ class ProjectionCostFunction : public ceres::CostFunction {
 
       // Compose Jacobians using the chain rule.
       if (jac_error_basis != NULL) {
-        for (int i = 0; i < 2; i += 1) {
-          for (int j = 0; j < 3; j += 1) {
-            for (int k = 0; k < 3 * K_; k += 1) {
+        int n = 2 * 3 * K_;
+        std::fill(jac_error_basis, jac_error_basis + n, 0.);
+
+        for (int p = 0; p < 2; p += 1) {
+          for (int q = 0; q < 3; q += 1) {
+            for (int r = 0; r < 3 * K_; r += 1) {
               // Row major
-              int ik = (i * 3 * K_) + k;
-              int ij = (i * 3) + j;
-              int jk = (j * 3 * K_) + k;
-              jac_error_basis[ik] = jac_error_point[ij] * jac_point_basis[jk];
+              int pr = (p * 3 * K_) + r;
+              int pq = (p * 3) + q;
+              int qr = (q * 3 * K_) + r;
+              jac_error_basis[pr] += jac_error_point[pq] * jac_point_basis[qr];
             }
           }
         }
       }
+
       if (jac_error_coeff != NULL) {
-        for (int i = 0; i < 2; i += 1) {
-          for (int j = 0; j < 3; j += 1) {
-            for (int k = 0; k < K_; k += 1) {
+        int n = 2 * K_;
+        std::fill(jac_error_coeff, jac_error_coeff + n, 0.);
+
+        for (int p = 0; p < 2; p += 1) {
+          for (int q = 0; q < 3; q += 1) {
+            for (int r = 0; r < K_; r += 1) {
               // Row major
-              int ik = (i * K_) + k;
-              int ij = (i * 3) + j;
-              int jk = (j * K_) + k;
-              jac_error_coeff[ik] = jac_error_point[ij] * jac_point_coeff[jk];
+              int pr = (p * K_) + r;
+              int pq = (p * 3) + q;
+              int qr = (q * K_) + r;
+              jac_error_coeff[pr] += jac_error_point[pq] * jac_point_coeff[qr];
             }
           }
         }
@@ -339,20 +249,27 @@ void nrsfmNonlinear(const double* W,
                     double* C,
                     int F,
                     int P,
-                    int K) {
+                    int K,
+                    int max_iter,
+                    double tol,
+                    bool verbose,
+                    bool check_gradients) {
   ceres::Problem problem;
 
   for (int t = 0; t < F; t += 1) {
+    double* q = &Q[t * 4];
+    double* c = &C[t * K];
+
     for (int i = 0; i < P; i += 1) {
       int it = t * P + i;
       const double* w = &W[it * 2];
-      double* q = &Q[t * 4];
       double* b = &B[i * (3 * K)];
-      double* c = &C[t * K];
 
       ceres::CostFunction* function = new ProjectionCostFunction(w[0], w[1], K);
       problem.AddResidualBlock(function, NULL, q, b, c);
     }
+
+    problem.SetParameterization(q, new ceres::QuaternionParameterization());
   }
 
   std::cout << "Problem has " << problem.NumParameters() << " parameters in " <<
@@ -361,9 +278,11 @@ void nrsfmNonlinear(const double* W,
       problem.NumResidualBlocks() << " blocks" << std::endl;
 
   ceres::Solver::Options options;
-  options.max_num_iterations = 1000;
-  options.linear_solver_type = ceres::DENSE_QR;
-  options.minimizer_progress_to_stdout = true;
+  options.max_num_iterations = max_iter;
+  options.function_tolerance = tol;
+  options.linear_solver_type = ceres::SPARSE_NORMAL_CHOLESKY;
+  options.minimizer_progress_to_stdout = verbose;
+  options.check_gradients = check_gradients;
 
   ceres::Solver::Summary summary;
   ceres::Solve(options, &problem, &summary);
@@ -448,16 +367,19 @@ void checkDimensions(const mxArray* projections,
 }
 
 void mexFunction(int nlhs, mxArray** plhs, int nrhs, const mxArray** prhs) {
-  if (nrhs < 4) {
+  const int NARGIN = 6;
+  const int NARGOUT = 3;
+
+  if (nrhs < NARGIN) {
     mexErrMsgTxt("Not enough input arguments");
   }
-  if (nrhs > 4) {
+  if (nrhs > NARGIN) {
     mexErrMsgTxt("Too many input arguments");
   }
-  if (nlhs < 3) {
+  if (nlhs < NARGOUT) {
     mexErrMsgTxt("Not enough output arguments");
   }
-  if (nlhs > 3) {
+  if (nlhs > NARGOUT) {
     mexErrMsgTxt("Too many output arguments");
   }
 
@@ -465,6 +387,8 @@ void mexFunction(int nlhs, mxArray** plhs, int nrhs, const mxArray** prhs) {
   const mxArray* cameras_init = prhs[1];
   const mxArray* bases_init = prhs[2];
   const mxArray* coeffs_init = prhs[3];
+  int max_iter = mxGetScalar(prhs[4]);
+  double tol = mxGetScalar(prhs[5]);
 
   checkDimensions(projections, cameras_init, bases_init, coeffs_init);
 
@@ -481,5 +405,5 @@ void mexFunction(int nlhs, mxArray** plhs, int nrhs, const mxArray** prhs) {
   double* B = mxGetPr(bases);
   double* C = mxGetPr(coeffs);
 
-  nrsfmNonlinear(W, Q, B, C, F, P, K);
+  nrsfmNonlinear(W, Q, B, C, F, P, K, max_iter, tol, true, false);
 }
