@@ -48,7 +48,7 @@ R = block_diagonal_cameras(Rs);
 mu = 1 / P * S * ones(P, 1);
 S = S - mu * ones(P, 1)';
 
-% Project S on to basis.
+% Project S on to low-rank manifold.
 S_sharp = k_reshape(S, 3);
 S_sharp = project_rank(S_sharp, K);
 S_low_rank = k_unreshape(S_sharp, 3);
@@ -112,9 +112,6 @@ Rs_hat = find_rotations(M_hat, 1e6);
 % Convert to block-diagonal.
 R_hat = block_diagonal_cameras(Rs_hat);
 
-fprintf('Any key to continue\n');
-pause;
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Dai 2012 solution for structure
 
@@ -160,3 +157,39 @@ points_linear = permute(points_linear, [2, 3, 1]);
 fprintf('Reprojection error (linear) = %g\n', ...
     norm(W - R_hat * S_linear, 'fro') / norm(W, 'fro'));
 fprintf('3D error (linear) = %g\n', min_shape_error(points, points_linear));
+
+fprintf('Any key to continue\n');
+pause;
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Solve for both structure and motion given estimate of R.
+
+W = permute(reshape(W, [2, F, P]), [1, 3, 2]);
+
+[Rs_nrsfm_nuclear, S_nrsfm_nuclear] = nrsfm_constrained_nuclear_norm(W, ...
+    Rs_hat, 1, 1, 200, 10, 10, 10);
+points_nrsfm_nuclear = permute(S_nrsfm_nuclear, [3, 2, 1]);
+
+fprintf('3D error (NRSFM nuclear) = %g\n', ...
+    min_shape_error(points, points_nrsfm_nuclear));
+
+fprintf('Any key to continue\n');
+pause;
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Solve for both structure and motion given estimate of R.
+
+[Rs_nrsfm_rank, S_nrsfm_rank] = nrsfm_fixed_rank(W, Rs_hat, K, 1, 1, 200, ...
+    10, 10, 10);
+points_nrsfm_rank = permute(S_nrsfm_rank, [3, 2, 1]);
+
+fprintf('3D error (NRSFM rank) = %g\n', ...
+    min_shape_error(points, points_nrsfm_rank));
+
+fprintf('Any key to continue\n');
+pause;
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Nonlinear refinement.
+
+nrsfm_nonlinear(W, Rs_hat, S_nuclear, K);

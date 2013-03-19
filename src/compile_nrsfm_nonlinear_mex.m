@@ -1,0 +1,1 @@
+mex -v CXXFLAGS="\$CXXFLAGS -Wall -Wno-sign-compare -I ~/src/ceres-solver/include/ -I /usr/local/include/eigen3/" LDFLAGS="\$LDFLAGS -L ~/src/ceres-solver/release/internal/ceres/ -lceres -lcholmod -lamd -lcolamd -lcxsparse -lprotobuf -lglog" nrsfm_nonlinear_mex.cpp
