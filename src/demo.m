@@ -189,10 +189,10 @@ fprintf('3D error (NRSFM nuclear) = %g\n', ...
     10, 10, 10);
 points_nrsfm_rank = permute(S_nrsfm_rank, [3, 2, 1]);
 
-R_nrsfm_rank = block_diagonal_cameras(Rs_nrsfm_rank);
-S_nrsfm_rank = reshape(permute(S_nrsfm_rank, [1, 3, 2]), [3 * F, P]);
+R_mat = block_diagonal_cameras(Rs_nrsfm_rank);
+S_mat = reshape(permute(S_nrsfm_rank, [1, 3, 2]), [3 * F, P]);
 fprintf('Reprojection error (NRSFM rank) = %g\n', ...
-    norm(W - R_nrsfm_rank * S_nrsfm_rank, 'fro') / norm(W, 'fro'));
+    norm(W - R_mat * S_mat, 'fro') / norm(W, 'fro'));
 
 fprintf('3D error (NRSFM rank) = %g\n', ...
     min_shape_error(points, points_nrsfm_rank));
@@ -207,10 +207,10 @@ fprintf('3D error (NRSFM rank) = %g\n', ...
     S_nrsfm_rank, K, 1000, 1e-4);
 points_nonlinear = permute(S_nonlinear, [3, 2, 1]);
 
-R_nonlinear = block_diagonal_cameras(Rs_nonlinear);
-S_nonlinear = reshape(permute(S_nonlinear, [1, 3, 2]), [3 * F, P]);
+R_mat = block_diagonal_cameras(Rs_nonlinear);
+S_mat = reshape(permute(S_nonlinear, [1, 3, 2]), [3 * F, P]);
 fprintf('Reprojection error (non-linear) = %g\n', ...
-    norm(W - R_nonlinear * S_nonlinear, 'fro') / norm(W, 'fro'));
+    norm(W - R_mat * S_mat, 'fro') / norm(W, 'fro'));
 
 fprintf('3D error (non-linear) = %g\n', ...
     min_shape_error(points, points_nonlinear));
