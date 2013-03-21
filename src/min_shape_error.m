@@ -3,8 +3,13 @@
 % S is the reference, to which X is aligned.
 
 function residual = min_shape_error(S, X)
+  assert(ndims(S) == 3);
+  assert(size(S, 1) == 3);
   P = size(S, 2);
   F = size(S, 3);
+  assert(ndims(X) == 3);
+  assert(size(X, 2) == P);
+  assert(size(X, 3) == F);
 
   X = align_shapes_similarity(S, X);
 
