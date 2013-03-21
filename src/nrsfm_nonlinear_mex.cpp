@@ -5,6 +5,7 @@
 #include <ceres/ceres.h>
 #include <ceres/rotation.h>
 #include <boost/scoped_array.hpp>
+#include "chain.hpp"
 
 using std::vector;
 using boost::scoped_array;
@@ -54,7 +55,7 @@ class BasisFunction : public ceres::CostFunction {
       const double* basis = parameters[0];
       const double* coeff = parameters[1];
 
-      // Matrix multiplication.
+      // Matrix times vector.
       for (int k = 0; k < K_; k += 1) {
         for (int d = 0; d < 3; d += 1) {
           // 3 x K column major, K x 3 row major
@@ -130,115 +131,6 @@ class ProjectionErrorFunction {
     double w_[2];
 };
 
-class ProjectionCostFunction : public ceres::CostFunction {
-  public:
-    ProjectionCostFunction(double x, double y, int K)
-        : K_(K),
-          point_func_(K),
-          error_func_(new ProjectionErrorFunction(x, y)) {
-      // Cameras
-      mutable_parameter_block_sizes()->push_back(4);
-      // Basis
-      mutable_parameter_block_sizes()->push_back(3 * K_);
-      // Coefficients
-      mutable_parameter_block_sizes()->push_back(K_);
-
-      // Residual is 2D point error.
-      set_num_residuals(2);
-    }
-
-    bool Evaluate(const double* const* params,
-                  double* error,
-                  double** jacobians) const {
-      const double* camera = params[0];
-      const double* basis = params[1];
-      const double* coeff = params[2];
-
-      double* jac_error_camera = NULL;
-      double* jac_error_basis = NULL;
-      double* jac_error_coeff = NULL;
-
-      if (jacobians != NULL) {
-        jac_error_camera = jacobians[0];
-        jac_error_basis = jacobians[1];
-        jac_error_coeff = jacobians[2];
-      }
-
-      // Compute point from basis and coefficients.
-      vector<double> point(3);
-      scoped_array<double> jac_point_basis;
-      if (jac_error_basis != NULL) {
-        jac_point_basis.reset(new double[3 * 3 * K_]);
-      }
-      scoped_array<double> jac_point_coeff;
-      if (jac_error_coeff != NULL) {
-        jac_point_coeff.reset(new double[3 * K_]);
-      }
-      {
-        const double* func_params[] = { basis, coeff };
-        double* func_jacobians[2] = { jac_point_basis.get(),
-            jac_point_coeff.get() };
-        point_func_.Evaluate(func_params, point.data(), func_jacobians);
-      }
-
-      // Evaluate projection error of this point.
-      scoped_array<double> jac_error_point;
-      if (jac_error_basis != NULL || jac_error_coeff != NULL) {
-        jac_error_point.reset(new double[2 * 3]);
-      }
-      {
-        const double* func_params[] = { camera, point.data() };
-        double* func_jacobians[] = { jac_error_camera, jac_error_point.get() };
-        error_func_.Evaluate(func_params, error, func_jacobians);
-      }
-
-      // Compose Jacobians using the chain rule.
-      if (jac_error_basis != NULL) {
-        int n = 2 * 3 * K_;
-        std::fill(jac_error_basis, jac_error_basis + n, 0.);
-
-        for (int p = 0; p < 2; p += 1) {
-          for (int q = 0; q < 3; q += 1) {
-            for (int r = 0; r < 3 * K_; r += 1) {
-              // Row major
-              int pr = (p * 3 * K_) + r;
-              int pq = (p * 3) + q;
-              int qr = (q * 3 * K_) + r;
-              jac_error_basis[pr] += jac_error_point[pq] * jac_point_basis[qr];
-            }
-          }
-        }
-      }
-
-      if (jac_error_coeff != NULL) {
-        int n = 2 * K_;
-        std::fill(jac_error_coeff, jac_error_coeff + n, 0.);
-
-        for (int p = 0; p < 2; p += 1) {
-          for (int q = 0; q < 3; q += 1) {
-            for (int r = 0; r < K_; r += 1) {
-              // Row major
-              int pr = (p * K_) + r;
-              int pq = (p * 3) + q;
-              int qr = (q * K_) + r;
-              jac_error_coeff[pr] += jac_error_point[pq] * jac_point_coeff[qr];
-            }
-          }
-        }
-      }
-
-      return true;
-    }
-
-  private:
-    typedef ceres::AutoDiffCostFunction<ProjectionErrorFunction, 2, 4, 3>
-        AutoDiffProjectionError;
-
-    int K_;
-    BasisFunction point_func_;
-    AutoDiffProjectionError error_func_;
-};
-
 // W -- 2 x P x F column major
 // Q -- 4 x F column major
 // B -- 3 x K x P column major
@@ -265,7 +157,11 @@ void nrsfmNonlinear(const double* W,
       const double* w = &W[it * 2];
       double* b = &B[i * (3 * K)];
 
-      ceres::CostFunction* function = new ProjectionCostFunction(w[0], w[1], K);
+      chain::ComposedCostFunction* function = new chain::ComposedCostFunction(
+          new ceres::AutoDiffCostFunction<ProjectionErrorFunction, 2, 4, 3>(
+            new ProjectionErrorFunction(w[0], w[1])));
+      function->SetInput(1, new BasisFunction(K));
+
       problem.AddResidualBlock(function, NULL, q, b, c);
     }
 
@@ -283,6 +179,7 @@ void nrsfmNonlinear(const double* W,
   options.linear_solver_type = ceres::SPARSE_NORMAL_CHOLESKY;
   options.minimizer_progress_to_stdout = verbose;
   options.check_gradients = check_gradients;
+  options.gradient_check_relative_precision = 1e-3;
 
   ceres::Solver::Summary summary;
   ceres::Solve(options, &problem, &summary);
