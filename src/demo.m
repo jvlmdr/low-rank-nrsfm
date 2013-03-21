@@ -4,7 +4,7 @@ rng('default');
 
 K = 4;
 scale_stddev = sqrt(2);
-use_akhter_data = false;
+use_akhter_data = true;
 
 if use_akhter_data
   % Load mocap sequence.
@@ -35,10 +35,11 @@ else
     Rs(:, :, t) = scene.cameras(t).P(1:2, 1:3);
   end
 
-  % [F, P, 3] -> [3, F, P] -> [3F, P]
+  % [F, P, 3] -> [3, F, P]
+  points = permute(points, [3, 1, 2]);
+  % [3, F, P] -> [3F, P]
   S = points;
-  S = permute(S, [3, 1, 2]);
-  S = reshape(S, [3 * F, P]);
+  S = reshape(points, [3 * F, P]);
 end
 
 % Build block-diagonal rotation matrix.
@@ -60,10 +61,10 @@ S = S_low_rank;
 % Restore centroid.
 S = S + mu * ones(P, 1)';
 
-% [3F, P] -> [3, F, P] -> [F, P, 3]
+% [3F, P] -> [3, F, P] -> [3, P, F]
 points = S;
 points = reshape(points, [3, F, P]);
-points = permute(points, [2, 3, 1]);
+points = permute(points, [1, 3, 2]);
 
 % Project.
 W = R * S;
@@ -73,7 +74,10 @@ mu = 1 / P * W * ones(P, 1);
 W = W - mu * ones(P, 1)';
 
 % Build 2 x P x F matrix of projections.
-Ws = permute(reshape(W, [2, F, P]), [1, 3, 2]);
+% [2F, P] -> [2, F, P] -> [2, P, F]
+projections = W;
+projections = reshape(projections, [2, F, P]);
+projections = permute(projections, [1, 3, 2]);
 
 % Compute SVD of W.
 [U, D, V] = svd(W, 'econ');
@@ -97,10 +101,10 @@ subset = subset(1:K);
 % Recover structure.
 S_xiao = kron(C_hat, eye(3)) * inv(G) * B_hat;
 
-% [3F, P] -> [3, F, P] -> [F, P, 3]
+% [3F, P] -> [3, F, P] -> [3, P, F]
 points_xiao = S_xiao;
 points_xiao = reshape(points_xiao, [3, F, P]);
-points_xiao = permute(points_xiao, [2, 3, 1]);
+points_xiao = permute(points_xiao, [1, 3, 2]);
 fprintf('3D error (Xiao 2004) = %g\n', min_shape_error(points, points_xiao));
 
 %fprintf('Any key to continue\n');
@@ -132,10 +136,10 @@ S_nuclear = find_structure_affine_cameras(W, Rs_hat, true, ...
       'epsilon_rel', 1e-3, ...
       'min_rho_iter', 4));
 
-% [3F, P] -> [3, F, P] -> [F, P, 3]
+% [3F, P] -> [3, F, P] -> [3, P, F]
 points_nuclear = S_nuclear;
 points_nuclear = reshape(points_nuclear, [3, F, P]);
-points_nuclear = permute(points_nuclear, [2, 3, 1]);
+points_nuclear = permute(points_nuclear, [1, 3, 2]);;
 
 fprintf('Reprojection error (nuclear) = %g\n', ...
     norm(W - R_hat * S_nuclear, 'fro') / norm(W, 'fro'));
@@ -152,10 +156,10 @@ fprintf('Linear solution...\n');
 [G, C] = find_corrective_matrix(M_hat, Rs_hat);
 S_linear = kron(C, eye(3)) * inv(G) * B_hat;
 
-% [3F, P] -> [3, F, P] -> [F, P, 3]
+% [3F, P] -> [3, F, P] -> [3, P, F]
 points_linear = S_linear;
 points_linear = reshape(points_linear, [3, F, P]);
-points_linear = permute(points_linear, [2, 3, 1]);
+points_linear = reshape(points_linear, [3, P, F]);
 
 fprintf('Reprojection error (linear) = %g\n', ...
     norm(W - R_hat * S_linear, 'fro') / norm(W, 'fro'));
@@ -167,15 +171,17 @@ fprintf('3D error (linear) = %g\n', min_shape_error(points, points_linear));
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Solve for both structure and motion given estimate of R.
 
-[Rs_nrsfm_nuclear, S_nrsfm_nuclear] = nrsfm_constrained_nuclear_norm(Ws, ...
-    Rs_hat, 1, 1, 200, 10, 10, 10);
-points_nrsfm_nuclear = permute(S_nrsfm_nuclear, [3, 2, 1]);
+[Rs_nrsfm_nuclear, points_nrsfm_nuclear] = nrsfm_constrained_nuclear_norm(...
+    projections, Rs_hat, 1, 1, 200, 10, 10, 10);
 
-R_nrsfm_nuclear = block_diagonal_cameras(Rs_nrsfm_nuclear);
-S_nrsfm_nuclear = reshape(permute(S_nrsfm_nuclear, [1, 3, 2]), [3 * F, P]);
+R_mat = block_diagonal_cameras(Rs_nrsfm_nuclear);
+% [3, P, F] -> [3, F, P] -> [3F, P]
+S_mat = points_nrsfm_nuclear;
+S_mat = permute(S_mat, [1, 3, 2]);
+S_mat = reshape(S_mat, [3 * F, P]);
+
 fprintf('Reprojection error (NRSFM nuclear) = %g\n', ...
-    norm(W - R_nrsfm_nuclear * S_nrsfm_nuclear, 'fro') / norm(W, 'fro'));
-
+    norm(W - R_mat * S_mat, 'fro') / norm(W, 'fro'));
 fprintf('3D error (NRSFM nuclear) = %g\n', ...
     min_shape_error(points, points_nrsfm_nuclear));
 
@@ -185,15 +191,17 @@ fprintf('3D error (NRSFM nuclear) = %g\n', ...
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Solve for both structure and motion given estimate of R.
 
-[Rs_nrsfm_rank, S_nrsfm_rank] = nrsfm_fixed_rank(Ws, Rs_hat, K, 1, 1, 200, ...
-    10, 10, 10);
-points_nrsfm_rank = permute(S_nrsfm_rank, [3, 2, 1]);
+[Rs_nrsfm_rank, points_nrsfm_rank] = nrsfm_fixed_rank(projections, Rs_hat, K, 1, 1, ...
+    200, 10, 10, 10);
 
 R_mat = block_diagonal_cameras(Rs_nrsfm_rank);
-S_mat = reshape(permute(S_nrsfm_rank, [1, 3, 2]), [3 * F, P]);
+% [3, P, F] -> [3, F, P] -> [3F, P]
+S_mat = points_nrsfm_rank;
+S_mat = permute(S_mat, [1, 3, 2]);
+S_mat = reshape(S_mat, [3 * F, P]);
+
 fprintf('Reprojection error (NRSFM rank) = %g\n', ...
     norm(W - R_mat * S_mat, 'fro') / norm(W, 'fro'));
-
 fprintf('3D error (NRSFM rank) = %g\n', ...
     min_shape_error(points, points_nrsfm_rank));
 
@@ -203,14 +211,33 @@ fprintf('3D error (NRSFM rank) = %g\n', ...
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Nonlinear refinement.
 
-[Rs_nonlinear, S_nonlinear] = nrsfm_nonlinear(Ws, Rs_nrsfm_rank, ...
-    S_nrsfm_rank, K, 1000, 1e-4);
-points_nonlinear = permute(S_nonlinear, [3, 2, 1]);
+[Rs_nrsfm_nuclear_refined, points_nrsfm_nuclear_refined] = nrsfm_nonlinear(...
+    projections, Rs_nrsfm_nuclear, points_nrsfm_nuclear, K, 1000, 1e-4);
 
-R_mat = block_diagonal_cameras(Rs_nonlinear);
-S_mat = reshape(permute(S_nonlinear, [1, 3, 2]), [3 * F, P]);
+R_mat = block_diagonal_cameras(Rs_nrsfm_nuclear_refined);
+% [3, P, F] -> [3, F, P] -> [3F, P]
+S_mat = points_nrsfm_nuclear_refined;
+S_mat = permute(S_mat, [1, 3, 2]);
+S_mat = reshape(S_mat, [3 * F, P]);
+
 fprintf('Reprojection error (non-linear) = %g\n', ...
     norm(W - R_mat * S_mat, 'fro') / norm(W, 'fro'));
-
 fprintf('3D error (non-linear) = %g\n', ...
-    min_shape_error(points, points_nonlinear));
+    min_shape_error(points, points_nrsfm_nuclear_refined));
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Nonlinear refinement.
+
+[Rs_nrsfm_rank_refined, points_nrsfm_rank_refined] = nrsfm_nonlinear(...
+    projections, Rs_nrsfm_rank, points_nrsfm_rank, K, 1000, 1e-4);
+
+R_mat = block_diagonal_cameras(Rs_nrsfm_rank_refined);
+% [3, P, F] -> [3, F, P] -> [3F, P]
+S_mat = points_nrsfm_rank_refined;
+S_mat = permute(S_mat, [1, 3, 2]);
+S_mat = reshape(S_mat, [3 * F, P]);
+
+fprintf('Reprojection error (non-linear) = %g\n', ...
+    norm(W - R_mat * S_mat, 'fro') / norm(W, 'fro'));
+fprintf('3D error (non-linear) = %g\n', ...
+    min_shape_error(points, points_nrsfm_rank_refined));

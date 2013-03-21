@@ -1,14 +1,14 @@
 % Parameters:
-% S, X -- F x P x 3 non-rigid shape
+% S, X -- 3 x P x F non-rigid shape
 % S is the reference, to which X is aligned.
 
 function residual = min_shape_error(S, X)
   F = size(S, 1);
   P = size(S, 2);
 
-  % [F, P, 3] -> [P, 3, F]
-  S = permute(S, [2, 3, 1]);
-  X = permute(X, [2, 3, 1]);
+  % [3, P, F] -> [P, 3, F]
+  S = permute(S, [2, 1, 3]);
+  X = permute(X, [2, 1, 3]);
 
   residual = 0;
   total = 0;
