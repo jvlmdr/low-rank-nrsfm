@@ -3,7 +3,7 @@ num_sequences = 32;
 downsample = 8;
 
 omega_stddev = 5 * pi / 180;
-scale_stddev = sqrt(2);
+scale_stddev = 1; %sqrt(2);
 noise_stddevs = [0, 0.01, 1, 100];
 
 num_noises = length(noise_stddevs);
@@ -78,29 +78,9 @@ for i = 1:num_sequences
       solution = solver.solve(scene.projections + noise, K);
 
       residuals(i, j, k) = min_shape_error(scene.points, solution);
-      residuals(i, j, k)
+      fprintf('Residual: %g\n', residuals(i, j, k));
     end
   end
 end
 
-residuals = permute(residuals, [1, 3, 2]);
-
-for i = 1:num_noises
-  noise_stddev = noise_stddevs(i);
-  figure;
-  boxplot(residuals(:, :, i));
-  hold on;
-  plotSpread(residuals(:, :, i));
-  hold off;
-  grid on;
-  axis([0, num_solvers + 1, 0, max(residuals(:)) * 1.05]);
-  title(sprintf('Noise level %g', noise_stddev));
-  set(gca, 'XTick', 1:num_solvers);
-  set(gca, 'XTickLabel', {solvers.name});
-  filename = sprintf('../figures/noise/%d-%g.eps', i, noise_stddev);
-  print(filename, '-depsc2');
-  unix(['epstopdf ', filename]);
-  unix(['rm ', filename]);
-end
-
-residuals = permute(residuals, [1, 3, 2]);
+noise_experiment_visualize;
