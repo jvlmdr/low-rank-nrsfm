@@ -159,7 +159,7 @@ S_linear = kron(C, eye(3)) * inv(G) * B_hat;
 % [3F, P] -> [3, F, P] -> [3, P, F]
 points_linear = S_linear;
 points_linear = reshape(points_linear, [3, F, P]);
-points_linear = reshape(points_linear, [3, P, F]);
+points_linear = permute(points_linear, [1, 3, 2]);
 
 fprintf('Reprojection error (linear) = %g\n', ...
     norm(W - R_hat * S_linear, 'fro') / norm(W, 'fro'));
