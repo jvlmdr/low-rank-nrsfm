@@ -24,7 +24,8 @@ function S = reconstruct_nullspace(W, K)
   % Solve for rotations using a single triple.
   Rs = find_rotations(M_hat, 1e6);
 
-  [G, C] = find_corrective_matrix(M_hat, Rs);
+  R = block_diagonal_cameras(Rs);
+  [G, C] = find_corrective_matrix_nullspace(M_hat, Rs);
   S = kron(C, eye(3)) * inv(G) * B_hat;
 
   % [3F, P] -> [3, F, P] -> [F, P, 3]

@@ -99,7 +99,8 @@ subset = randperm(F);
 subset = subset(1:K);
 
 % Solve for corrective matrix.
-[G, Rs_hat, C_hat] = find_corrective_transform_xiao_2004_linear(M_hat, subset);
+[G, rotations_xiao, C_hat] = find_corrective_transform_xiao_2004_linear(...
+    M_hat, subset);
 % Recover structure.
 S_xiao = kron(C_hat, eye(3)) * inv(G) * B_hat;
 
@@ -110,17 +111,17 @@ points_xiao = permute(points_xiao, [1, 3, 2]);
 fprintf('3D error (Xiao 2004) = %g\n', ...
     min_shape_error(points_tilde, points_xiao));
 
-fprintf('Any key to continue\n');
-pause;
+%fprintf('Any key to continue\n');
+%pause;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Modified solution for cameras of Dai 2012
 
-Rs_hat = find_rotations(M_hat, 1e6);
-%Rs_hat = find_rotations_dai(M_hat);
+rotations_trace = find_rotations(M_hat, 1e6);
+%rotations_trace = find_rotations_dai(M_hat);
 
 % Convert to block-diagonal.
-R_hat = block_diagonal_cameras(Rs_hat);
+R_hat = block_diagonal_cameras(rotations_trace);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Dai 2012 solution for structure
@@ -128,7 +129,7 @@ R_hat = block_diagonal_cameras(Rs_hat);
 fprintf('Nuclear norm solution...\n');
 
 % Find structure.
-S_nuclear = find_structure_affine_cameras(W, Rs_hat, true, ...
+S_nuclear = find_structure_affine_cameras(W, rotations_trace, true, ...
     struct(...
       'rho', 1, ...
       'mu', 10, ...
@@ -149,123 +150,147 @@ fprintf('Reprojection error (nuclear) = %g\n', ...
 fprintf('3D error (nuclear) = %g\n', ...
     min_shape_error(points_tilde, points_nuclear));
 
-fprintf('Any key to continue\n');
-pause;
+%fprintf('Any key to continue\n');
+%pause;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Nonlinear refinement of constrained nuclear norm solution for S.
 
-[Rs_refined_nuclear, points_refined_nuclear] = nrsfm_nonlinear(projections, ...
-    Rs_hat, points_nuclear, K, 1000, 1e-4);
-
-R_mat = block_diagonal_cameras(Rs_refined_nuclear);
-% [3, P, F] -> [3, F, P] -> [3F, P]
-S_mat = points_refined_nuclear;
-S_mat = permute(S_mat, [1, 3, 2]);
-S_mat = reshape(S_mat, [3 * F, P]);
-
-fprintf('Reprojection error (refined nuclear) = %g\n', ...
-    norm(W - R_mat * S_mat, 'fro') / norm(W, 'fro'));
-fprintf('3D error (refined nuclear) = %g\n', ...
-    min_shape_error(points_tilde, points_refined_nuclear));
-
-fprintf('Any key to continue\n');
-pause;
+%[Rs_refined_nuclear, points_refined_nuclear] = nrsfm_nonlinear(projections, ...
+%    rotations_trace, points_nuclear, K, 1000, 1e-4);
+%
+%R_mat = block_diagonal_cameras(Rs_refined_nuclear);
+%% [3, P, F] -> [3, F, P] -> [3F, P]
+%S_mat = points_refined_nuclear;
+%S_mat = permute(S_mat, [1, 3, 2]);
+%S_mat = reshape(S_mat, [3 * F, P]);
+%
+%fprintf('Reprojection error (refined nuclear) = %g\n', ...
+%    norm(W - R_mat * S_mat, 'fro') / norm(W, 'fro'));
+%fprintf('3D error (refined nuclear) = %g\n', ...
+%    min_shape_error(points_tilde, points_refined_nuclear));
+%
+%%fprintf('Any key to continue\n');
+%%pause;
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Our solution for structure using the nullspace
+%
+%fprintf('Linear solution...\n');
+%
+%[G, C] = find_corrective_matrix_nullspace(M_hat, R_hat);
+%S_linear = kron(C, eye(3)) * inv(G) * B_hat;
+%
+%% [3F, P] -> [3, F, P] -> [3, P, F]
+%points_linear = S_linear;
+%points_linear = reshape(points_linear, [3, F, P]);
+%points_linear = permute(points_linear, [1, 3, 2]);
+%
+%fprintf('Reprojection error (linear) = %g\n', ...
+%    norm(W - R_hat * S_linear, 'fro') / norm(W, 'fro'));
+%fprintf('3D error (linear) = %g\n', ...
+%    min_shape_error(points_tilde, points_linear));
+%
+%%fprintf('Any key to continue\n');
+%%pause;
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Solve for both structure and motion given estimate of R.
+%
+%[Rs_nrsfm_nuclear, points_nrsfm_nuclear] = nrsfm_constrained_nuclear_norm(...
+%    projections, rotations_trace, 1, 1, 200, 10, 10, 10);
+%
+%R_mat = block_diagonal_cameras(Rs_nrsfm_nuclear);
+%% [3, P, F] -> [3, F, P] -> [3F, P]
+%S_mat = points_nrsfm_nuclear;
+%S_mat = permute(S_mat, [1, 3, 2]);
+%S_mat = reshape(S_mat, [3 * F, P]);
+%
+%fprintf('Reprojection error (NRSFM nuclear) = %g\n', ...
+%    norm(W - R_mat * S_mat, 'fro') / norm(W, 'fro'));
+%fprintf('3D error (NRSFM nuclear) = %g\n', ...
+%    min_shape_error(points_tilde, points_nrsfm_nuclear));
+%
+%%fprintf('Any key to continue\n');
+%%pause;
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Nonlinear refinement of constrained nuclear norm ADMM solution for S and R.
+%
+%[Rs_refined_nrsfm_nuclear, points_refined_nrsfm_nuclear] = nrsfm_nonlinear(...
+%    projections, Rs_nrsfm_nuclear, points_nrsfm_nuclear, K, 1000, 1e-4);
+%
+%R_mat = block_diagonal_cameras(Rs_refined_nrsfm_nuclear);
+%% [3, P, F] -> [3, F, P] -> [3F, P]
+%S_mat = points_refined_nrsfm_nuclear;
+%S_mat = permute(S_mat, [1, 3, 2]);
+%S_mat = reshape(S_mat, [3 * F, P]);
+%
+%fprintf('Reprojection error (refined NRSFM nuclear) = %g\n', ...
+%    norm(W - R_mat * S_mat, 'fro') / norm(W, 'fro'));
+%fprintf('3D error (refined NRSFM nuclear) = %g\n', ...
+%    min_shape_error(points_tilde, points_refined_nrsfm_nuclear));
+%
+%%fprintf('Any key to continue\n');
+%%pause;
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Solve for both structure and motion given estimate of R.
+%
+%[Rs_nrsfm_rank, points_nrsfm_rank] = nrsfm_fixed_rank(projections, ...
+%    rotations_trace, K, 1, 1, 200, 10, 10, 10);
+%
+%R_mat = block_diagonal_cameras(Rs_nrsfm_rank);
+%% [3, P, F] -> [3, F, P] -> [3F, P]
+%S_mat = points_nrsfm_rank;
+%S_mat = permute(S_mat, [1, 3, 2]);
+%S_mat = reshape(S_mat, [3 * F, P]);
+%
+%fprintf('Reprojection error (NRSFM rank) = %g\n', ...
+%    norm(W - R_mat * S_mat, 'fro') / norm(W, 'fro'));
+%fprintf('3D error (NRSFM rank) = %g\n', ...
+%    min_shape_error(points_tilde, points_nrsfm_rank));
+%
+%%fprintf('Any key to continue\n');
+%%pause;
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Nonlinear refinement of rank-constrained ADMM solution for S and R.
+%
+%[Rs_refined_nrsfm_rank, points_refined_nrsfm_rank] = nrsfm_nonlinear(...
+%    projections, Rs_nrsfm_rank, points_nrsfm_rank, K, 1000, 1e-4);
+%
+%R_mat = block_diagonal_cameras(Rs_refined_nrsfm_rank);
+%% [3, P, F] -> [3, F, P] -> [3F, P]
+%S_mat = points_refined_nrsfm_rank;
+%S_mat = permute(S_mat, [1, 3, 2]);
+%S_mat = reshape(S_mat, [3 * F, P]);
+%
+%fprintf('Reprojection error (refined NRSFM rank) = %g\n', ...
+%    norm(W - R_mat * S_mat, 'fro') / norm(W, 'fro'));
+%fprintf('3D error (refined NRSFM rank) = %g\n', ...
+%    min_shape_error(points_tilde, points_refined_nrsfm_rank));
+%
+%%fprintf('Any key to continue\n');
+%%pause;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Our solution for structure using the nullspace
+% 
 
-fprintf('Linear solution...\n');
+clear rotations_hat points_hat basis_hat coeff_hat R_hat S_hat;
 
-[G, C] = find_corrective_matrix(M_hat, Rs_hat);
-S_linear = kron(C, eye(3)) * inv(G) * B_hat;
+[~, basis_hat] = find_structure_nullspace(projections, rotations_trace, K);
 
-% [3F, P] -> [3, F, P] -> [3, P, F]
-points_linear = S_linear;
-points_linear = reshape(points_linear, [3, F, P]);
-points_linear = permute(points_linear, [1, 3, 2]);
+[points_hat, rotations_hat] = nrsfm_homogeneous_alternation(projections, ...
+    rotations_trace, basis_hat, 40);
 
-fprintf('Reprojection error (linear) = %g\n', ...
-    norm(W - R_hat * S_linear, 'fro') / norm(W, 'fro'));
-fprintf('3D error (linear) = %g\n', ...
-    min_shape_error(points_tilde, points_linear));
-
-fprintf('Any key to continue\n');
-pause;
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Solve for both structure and motion given estimate of R.
-
-[Rs_nrsfm_nuclear, points_nrsfm_nuclear] = nrsfm_constrained_nuclear_norm(...
-    projections, Rs_hat, 1, 1, 200, 10, 10, 10);
-
-R_mat = block_diagonal_cameras(Rs_nrsfm_nuclear);
+R_hat = block_diagonal_cameras(rotations_hat);
 % [3, P, F] -> [3, F, P] -> [3F, P]
-S_mat = points_nrsfm_nuclear;
-S_mat = permute(S_mat, [1, 3, 2]);
-S_mat = reshape(S_mat, [3 * F, P]);
+S_hat = points_hat;
+S_hat = permute(S_hat, [1, 3, 2]);
+S_hat = reshape(S_hat, [3 * F, P]);
 
-fprintf('Reprojection error (NRSFM nuclear) = %g\n', ...
-    norm(W - R_mat * S_mat, 'fro') / norm(W, 'fro'));
-fprintf('3D error (NRSFM nuclear) = %g\n', ...
-    min_shape_error(points_tilde, points_nrsfm_nuclear));
-
-fprintf('Any key to continue\n');
-pause;
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Nonlinear refinement of constrained nuclear norm ADMM solution for S and R.
-
-[Rs_refined_nrsfm_nuclear, points_refined_nrsfm_nuclear] = nrsfm_nonlinear(...
-    projections, Rs_nrsfm_nuclear, points_nrsfm_nuclear, K, 1000, 1e-4);
-
-R_mat = block_diagonal_cameras(Rs_refined_nrsfm_nuclear);
-% [3, P, F] -> [3, F, P] -> [3F, P]
-S_mat = points_refined_nrsfm_nuclear;
-S_mat = permute(S_mat, [1, 3, 2]);
-S_mat = reshape(S_mat, [3 * F, P]);
-
-fprintf('Reprojection error (refined NRSFM nuclear) = %g\n', ...
-    norm(W - R_mat * S_mat, 'fro') / norm(W, 'fro'));
-fprintf('3D error (refined NRSFM nuclear) = %g\n', ...
-    min_shape_error(points_tilde, points_refined_nrsfm_nuclear));
-
-fprintf('Any key to continue\n');
-pause;
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Solve for both structure and motion given estimate of R.
-
-[Rs_nrsfm_rank, points_nrsfm_rank] = nrsfm_fixed_rank(projections, Rs_hat, ...
-    K, 1, 1, 200, 10, 10, 10);
-
-R_mat = block_diagonal_cameras(Rs_nrsfm_rank);
-% [3, P, F] -> [3, F, P] -> [3F, P]
-S_mat = points_nrsfm_rank;
-S_mat = permute(S_mat, [1, 3, 2]);
-S_mat = reshape(S_mat, [3 * F, P]);
-
-fprintf('Reprojection error (NRSFM rank) = %g\n', ...
-    norm(W - R_mat * S_mat, 'fro') / norm(W, 'fro'));
-fprintf('3D error (NRSFM rank) = %g\n', ...
-    min_shape_error(points_tilde, points_nrsfm_rank));
-
-fprintf('Any key to continue\n');
-pause;
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Nonlinear refinement of rank-constrained ADMM solution for S and R.
-
-[Rs_refined_nrsfm_rank, points_refined_nrsfm_rank] = nrsfm_nonlinear(...
-    projections, Rs_nrsfm_rank, points_nrsfm_rank, K, 1000, 1e-4);
-
-R_mat = block_diagonal_cameras(Rs_refined_nrsfm_rank);
-% [3, P, F] -> [3, F, P] -> [3F, P]
-S_mat = points_refined_nrsfm_rank;
-S_mat = permute(S_mat, [1, 3, 2]);
-S_mat = reshape(S_mat, [3 * F, P]);
-
-fprintf('Reprojection error (refined NRSFM rank) = %g\n', ...
-    norm(W - R_mat * S_mat, 'fro') / norm(W, 'fro'));
-fprintf('3D error (refined NRSFM rank) = %g\n', ...
-    min_shape_error(points_tilde, points_refined_nrsfm_rank));
+fprintf('Reprojection error (nullspace alternation) = %g\n', ...
+    norm(W - R_hat * S_hat, 'fro') / norm(W, 'fro'));
+fprintf('3D error (nullspace alternation) = %g\n', ...
+    min_shape_error(points_tilde, points_hat));
