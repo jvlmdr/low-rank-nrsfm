@@ -275,6 +275,7 @@ fprintf('3D error (linear) = %g\n', ...
 %%pause;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Nullspace alternation, updating camera using motion matrix.
 
 clear rotations_hat points_hat basis_hat coeff_hat R_hat S_hat;
 
@@ -287,12 +288,13 @@ S_hat = points_hat;
 S_hat = permute(S_hat, [1, 3, 2]);
 S_hat = reshape(S_hat, [3 * F, P]);
 
-fprintf('Reprojection error (nullspace alternation) = %g\n', ...
+fprintf('Reprojection error (algebraic nullspace alternation) = %g\n', ...
     norm(W - R_hat * S_hat, 'fro') / norm(W, 'fro'));
-fprintf('3D error (nullspace alternation) = %g\n', ...
+fprintf('3D error (algebraic nullspace alternation) = %g\n', ...
     min_shape_error(points_tilde, points_hat));
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Nullspace alternation, updating camera using structure.
 
 clear rotations_hat points_hat basis_hat coeff_hat R_hat S_hat;
 
@@ -311,6 +313,27 @@ fprintf('3D error (nullspace alternation) = %g\n', ...
     min_shape_error(points_tilde, points_hat));
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Simple alternation, initialized using nullspace method.
+
+clear rotations_hat points_hat basis_hat coeff_hat R_hat S_hat;
+
+[~, basis_hat] = find_structure_nullspace(projections, rotations_trace, K);
+[points_hat, rotations_hat] = nrsfm_alternation(projections, ...
+    rotations_trace, basis_hat, 80);
+
+R_hat = block_diagonal_cameras(rotations_hat);
+% [3, P, F] -> [3, F, P] -> [3F, P]
+S_hat = points_hat;
+S_hat = permute(S_hat, [1, 3, 2]);
+S_hat = reshape(S_hat, [3 * F, P]);
+
+fprintf('Reprojection error (homogeneous alternation) = %g\n', ...
+    norm(W - R_hat * S_hat, 'fro') / norm(W, 'fro'));
+fprintf('3D error (homogeneous alternation) = %g\n', ...
+    min_shape_error(points_tilde, points_hat));
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Alternation using homogeneous problem, initialized using nullspace method.
 
 clear rotations_hat points_hat basis_hat coeff_hat R_hat S_hat;
 

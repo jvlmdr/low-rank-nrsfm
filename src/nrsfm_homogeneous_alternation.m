@@ -28,11 +28,15 @@ function [structure, rotations, basis, coeff] = ...
     B = reshape(B, [3 * K, P]);
 
     [G, C] = find_corrective_matrix(M_hat, R, B);
+    M = M_hat * G;
+    W_hat = M * B;
+    err1 = norm(W_hat - R * kron(C, eye(3)) * B, 'fro') / norm(W_hat, 'fro');
+
     B = inv(G) * B_hat;
     S = kron(C, eye(3)) * B;
 
     % Compute reprojection error.
-    err1 = norm(W - R * S, 'fro') / norm(W, 'fro');
+    %err1 = norm(W - R * S, 'fro') / norm(W, 'fro');
 
     % [3K, P] -> [3, K, P]
     basis = B;
@@ -46,12 +50,18 @@ function [structure, rotations, basis, coeff] = ...
     structure = S;
     structure = reshape(structure, [3, F, P]);
     structure = permute(structure, [1, 3, 2]);
+    % [2F, P] -> [2, F, P] -> [2, P, F]
+    reprojections = W_hat;
+    reprojections = reshape(reprojections, [2, F, P]);
+    reprojections = permute(reprojections, [1, 3, 2]);
 
-    rotations = find_non_worse_cameras(projections, structure, rotations);
+    %rotations = find_non_worse_cameras(projections, structure, rotations);
+    rotations = find_non_worse_cameras(reprojections, structure, rotations);
 
     % Compute reprojection error.
     R = block_diagonal_cameras(rotations);
-    err2 = norm(W - R * S, 'fro') / norm(W, 'fro');
+    %err2 = norm(W - R * S, 'fro') / norm(W, 'fro');
+    err2 = norm(M - R * kron(C, eye(3)), 'fro') / norm(M, 'fro');
 
     fprintf('%6d: %12g %12g\n', i, err1, err2);
   end
