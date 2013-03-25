@@ -28,7 +28,12 @@ function X = align_shapes_similarity(S, X)
     % Normalize scale.
     x = sqrt(mean(sum(X_t .^ 2, 2), 1));
     s = sqrt(mean(sum(S_t .^ 2, 2), 1));
-    X_t = s / x * X_t;
+    if x == 0
+      s = 0;
+    else
+      s = s / x;
+    end
+    X_t = s * X_t;
 
     % Align each frame individually.
     R = procrustes(X_t, S_t);

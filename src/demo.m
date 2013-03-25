@@ -333,6 +333,26 @@ fprintf('3D error (homogeneous alternation) = %g\n', ...
     min_shape_error(points_tilde, structure_hat));
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Minimize projection error regularized by nuclear norm.
+
+clear rotations_hat structure_hat basis_hat coeff_hat R_hat S_hat;
+
+lambda = 1e0;
+[structure_hat, rotations_hat] = nrsfm_nuclear_norm_regularizer(projections, ...
+    rotations_trace, lambda, 1, 200, 10, 10, 10);
+
+R_hat = block_diagonal_cameras(rotations_hat);
+% [3, P, F] -> [3, F, P] -> [3F, P]
+S_hat = structure_hat;
+S_hat = permute(S_hat, [1, 3, 2]);
+S_hat = reshape(S_hat, [3 * F, P]);
+
+fprintf('Reprojection error (nuclear norm regularizer) = %g\n', ...
+    norm(W - R_hat * S_hat, 'fro') / norm(W, 'fro'));
+fprintf('3D error (nuclear norm regularizer) = %g\n', ...
+    min_shape_error(points_tilde, structure_hat));
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % BALM, initialized using nullspace method.
 
 clear rotations_hat structure_hat basis_hat coeff_hat R_hat S_hat;
