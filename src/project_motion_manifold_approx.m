@@ -1,7 +1,4 @@
-% Approximately minimizes
-%   sum_k ||M_k - kron(c_k', R)||_F^2
-% subject to
-%   R R' = I.
+% Approximately minimizes ||M - kron(c', R)||_F  s.t.  R R' = I.
 %
 % Parameters:
 % M -- 2 x 3 x K
@@ -58,7 +55,7 @@ function [M, c, R] = project_motion_manifold_approx(M)
 
     R(:, :, j) = Q * V;
     for i = 1:K
-      c(i, j) = 1/2 * trace(Q * V * M(:, :, i)');
+      c(i, j) = 1/2 * trace(R(:, :, j) * M(:, :, i)');
     end
 
     % Measure residual.

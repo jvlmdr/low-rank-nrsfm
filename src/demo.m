@@ -352,6 +352,46 @@ fprintf('Reprojection error (BALM) = %g\n', ...
 fprintf('3D error (BALM) = %g\n', min_shape_error(points_tilde, structure_hat));
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Alternation with metric projections, initialized using nullspace method.
+
+clear rotations_hat structure_hat basis_hat coeff_hat R_hat S_hat;
+
+[~, ~, coeff_hat] = find_structure_nullspace(projections, rotations_trace, K);
+[structure_hat, rotations_hat] = nrsfm_metric_projections(projections, ...
+    rotations_trace, coeff_hat, 40);
+
+R_hat = block_diagonal_cameras(rotations_hat);
+% [3, P, F] -> [3, F, P] -> [3F, P]
+S_hat = structure_hat;
+S_hat = permute(S_hat, [1, 3, 2]);
+S_hat = reshape(S_hat, [3 * F, P]);
+
+fprintf('Reprojection error (BALM with metric projections) = %g\n', ...
+    norm(W - R_hat * S_hat, 'fro') / norm(W, 'fro'));
+fprintf('3D error (BALM with metric projections) = %g\n', ...
+    min_shape_error(points_tilde, structure_hat));
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% BALM with metric projections, initialized using nullspace method.
+
+clear rotations_hat structure_hat basis_hat coeff_hat R_hat S_hat;
+
+[~, ~, coeff_hat] = find_structure_nullspace(projections, rotations_trace, K);
+[structure_hat, rotations_hat] = nrsfm_balm_metric_projections(projections, ...
+    rotations_trace, coeff_hat, 1, 40, 10, 10, 10);
+
+R_hat = block_diagonal_cameras(rotations_hat);
+% [3, P, F] -> [3, F, P] -> [3F, P]
+S_hat = structure_hat;
+S_hat = permute(S_hat, [1, 3, 2]);
+S_hat = reshape(S_hat, [3 * F, P]);
+
+fprintf('Reprojection error (BALM with metric projections) = %g\n', ...
+    norm(W - R_hat * S_hat, 'fro') / norm(W, 'fro'));
+fprintf('3D error (BALM with metric projections) = %g\n', ...
+    min_shape_error(points_tilde, structure_hat));
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Alternation using homogeneous problem, initialized using nullspace method.
 
 clear rotations_hat structure_hat basis_hat coeff_hat R_hat S_hat;
