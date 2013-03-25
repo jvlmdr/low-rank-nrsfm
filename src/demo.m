@@ -178,18 +178,18 @@ fprintf('3D error (nuclear) = %g\n', ...
 
 fprintf('Linear solution...\n');
 
-points_hat = find_structure_nullspace(projections, rotations_trace, K);
+structure_hat = find_structure_nullspace(projections, rotations_trace, K);
 
 R_hat = block_diagonal_cameras(rotations_trace);
 % [3, P, F] -> [3, F, P] -> [3F, P]
-S_hat = points_hat;
+S_hat = structure_hat;
 S_hat = permute(S_hat, [1, 3, 2]);
 S_hat = reshape(S_hat, [3 * F, P]);
 
 fprintf('Reprojection error (linear) = %g\n', ...
     norm(W - R_hat * S_hat, 'fro') / norm(W, 'fro'));
 fprintf('3D error (linear) = %g\n', ...
-    min_shape_error(points_tilde, points_hat));
+    min_shape_error(points_tilde, structure_hat));
 
 %fprintf('Any key to continue\n');
 %pause;
@@ -277,77 +277,96 @@ fprintf('3D error (linear) = %g\n', ...
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Nullspace alternation, updating camera using motion matrix.
 
-clear rotations_hat points_hat basis_hat coeff_hat R_hat S_hat;
+clear rotations_hat structure_hat basis_hat coeff_hat R_hat S_hat;
 
-[points_hat, rotations_hat] = nrsfm_nullspace_alternation_algebraic(...
+[structure_hat, rotations_hat] = nrsfm_nullspace_alternation_algebraic(...
     projections, rotations_trace, K, 40);
 
 R_hat = block_diagonal_cameras(rotations_hat);
 % [3, P, F] -> [3, F, P] -> [3F, P]
-S_hat = points_hat;
+S_hat = structure_hat;
 S_hat = permute(S_hat, [1, 3, 2]);
 S_hat = reshape(S_hat, [3 * F, P]);
 
 fprintf('Reprojection error (algebraic nullspace alternation) = %g\n', ...
     norm(W - R_hat * S_hat, 'fro') / norm(W, 'fro'));
 fprintf('3D error (algebraic nullspace alternation) = %g\n', ...
-    min_shape_error(points_tilde, points_hat));
+    min_shape_error(points_tilde, structure_hat));
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Nullspace alternation, updating camera using structure.
 
-clear rotations_hat points_hat basis_hat coeff_hat R_hat S_hat;
+clear rotations_hat structure_hat basis_hat coeff_hat R_hat S_hat;
 
-[points_hat, rotations_hat] = nrsfm_nullspace_alternation(projections, ...
+[structure_hat, rotations_hat] = nrsfm_nullspace_alternation(projections, ...
     rotations_trace, K, 40);
 
 R_hat = block_diagonal_cameras(rotations_hat);
 % [3, P, F] -> [3, F, P] -> [3F, P]
-S_hat = points_hat;
+S_hat = structure_hat;
 S_hat = permute(S_hat, [1, 3, 2]);
 S_hat = reshape(S_hat, [3 * F, P]);
 
 fprintf('Reprojection error (nullspace alternation) = %g\n', ...
     norm(W - R_hat * S_hat, 'fro') / norm(W, 'fro'));
 fprintf('3D error (nullspace alternation) = %g\n', ...
-    min_shape_error(points_tilde, points_hat));
+    min_shape_error(points_tilde, structure_hat));
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Simple alternation, initialized using nullspace method.
 
-clear rotations_hat points_hat basis_hat coeff_hat R_hat S_hat;
+clear rotations_hat structure_hat basis_hat coeff_hat R_hat S_hat;
 
 [~, basis_hat] = find_structure_nullspace(projections, rotations_trace, K);
-[points_hat, rotations_hat] = nrsfm_alternation(projections, ...
+[structure_hat, rotations_hat] = nrsfm_alternation(projections, ...
     rotations_trace, basis_hat, 80);
 
 R_hat = block_diagonal_cameras(rotations_hat);
 % [3, P, F] -> [3, F, P] -> [3F, P]
-S_hat = points_hat;
+S_hat = structure_hat;
 S_hat = permute(S_hat, [1, 3, 2]);
 S_hat = reshape(S_hat, [3 * F, P]);
 
 fprintf('Reprojection error (homogeneous alternation) = %g\n', ...
     norm(W - R_hat * S_hat, 'fro') / norm(W, 'fro'));
 fprintf('3D error (homogeneous alternation) = %g\n', ...
-    min_shape_error(points_tilde, points_hat));
+    min_shape_error(points_tilde, structure_hat));
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% BALM, initialized using nullspace method.
+
+clear rotations_hat structure_hat basis_hat coeff_hat R_hat S_hat;
+
+[~, ~, coeff_hat] = find_structure_nullspace(projections, rotations_trace, K);
+[structure_hat, rotations_hat] = nrsfm_balm_approximate(projections, ...
+    rotations_trace, coeff_hat, 1, 80, 10, 10, 10);
+
+R_hat = block_diagonal_cameras(rotations_hat);
+% [3, P, F] -> [3, F, P] -> [3F, P]
+S_hat = structure_hat;
+S_hat = permute(S_hat, [1, 3, 2]);
+S_hat = reshape(S_hat, [3 * F, P]);
+
+fprintf('Reprojection error (BALM) = %g\n', ...
+    norm(W - R_hat * S_hat, 'fro') / norm(W, 'fro'));
+fprintf('3D error (BALM) = %g\n', min_shape_error(points_tilde, structure_hat));
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Alternation using homogeneous problem, initialized using nullspace method.
 
-clear rotations_hat points_hat basis_hat coeff_hat R_hat S_hat;
+clear rotations_hat structure_hat basis_hat coeff_hat R_hat S_hat;
 
 [~, basis_hat] = find_structure_nullspace(projections, rotations_trace, K);
-[points_hat, rotations_hat] = nrsfm_homogeneous_alternation(projections, ...
+[structure_hat, rotations_hat] = nrsfm_homogeneous_alternation(projections, ...
     rotations_trace, basis_hat, 40);
 
 R_hat = block_diagonal_cameras(rotations_hat);
 % [3, P, F] -> [3, F, P] -> [3F, P]
-S_hat = points_hat;
+S_hat = structure_hat;
 S_hat = permute(S_hat, [1, 3, 2]);
 S_hat = reshape(S_hat, [3 * F, P]);
 
 fprintf('Reprojection error (homogeneous alternation) = %g\n', ...
     norm(W - R_hat * S_hat, 'fro') / norm(W, 'fro'));
 fprintf('3D error (homogeneous alternation) = %g\n', ...
-    min_shape_error(points_tilde, points_hat));
+    min_shape_error(points_tilde, structure_hat));
