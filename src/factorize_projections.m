@@ -1,11 +1,9 @@
-function [M_hat, B_hat, W] = factorize(projections, K)
+function [M_hat, B_hat, W] = factorize_projections(projections, K)
   P = size(projections, 2);
   F = size(projections, 3);
 
   % [2, P, F] -> [2, F, P] -> [2F, P]
-  W = projections;
-  W = permute(W, [1, 3, 2]);
-  W = reshape(W, [2 * F, P]);
+  W = projections_to_matrix(projections);
 
   % Subtract centroid per frame.
   mu = mean(W, 2);

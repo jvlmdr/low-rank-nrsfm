@@ -95,21 +95,15 @@ B_hat = sqrt(d(1)) * diag(sqrt(d)) * V';
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Xiao 2004
 
-subset = randperm(F);
-subset = subset(1:K);
+[structure_hat, rotations_hat] = nrsfm_basis_constraints(projections, K);
 
-% Solve for corrective matrix.
-[G, rotations_xiao, C_hat] = find_corrective_transform_xiao_2004_linear(...
-    M_hat, subset);
-% Recover structure.
-S_xiao = kron(C_hat, eye(3)) * inv(G) * B_hat;
+R_hat = block_diagonal_cameras(rotations_hat);
+S_hat = structure_to_matrix(structure_hat);
 
-% [3F, P] -> [3, F, P] -> [3, P, F]
-points_xiao = S_xiao;
-points_xiao = reshape(points_xiao, [3, F, P]);
-points_xiao = permute(points_xiao, [1, 3, 2]);
+fprintf('Reprojection error (Xiao 2004) = %g\n', ...
+    norm(W - R_hat * S_hat, 'fro') / norm(W, 'fro'));
 fprintf('3D error (Xiao 2004) = %g\n', ...
-    min_shape_error(points_tilde, points_xiao));
+    min_shape_error(points_tilde, structure_hat));
 
 %fprintf('Any key to continue\n');
 %pause;
@@ -337,7 +331,7 @@ fprintf('3D error (homogeneous alternation) = %g\n', ...
 
 clear rotations_hat structure_hat basis_hat coeff_hat R_hat S_hat;
 
-lambda = 1e0;
+lambda = 1e3;
 [structure_hat, rotations_hat] = nrsfm_nuclear_norm_regularizer(projections, ...
     rotations_trace, lambda, 1, 200, 10, 10, 10);
 

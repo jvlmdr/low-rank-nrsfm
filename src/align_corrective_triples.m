@@ -4,10 +4,10 @@
 %
 % Returns:
 % G -- 3K x 3 x K
-% Rs -- 2 x 3 x F
-% C -- F x K
+% rotations -- 2 x 3 x F
+% coeff -- K x F
 
-function [G, Rs, C] = align_corrective_triples(M_hat, G)
+function [G, rotations, coeff] = align_corrective_triples(M_hat, G)
   % M_hat is 2F x 3K.
   F = size(M_hat, 1) / 2;
   K = size(M_hat, 2) / 3;
@@ -126,15 +126,16 @@ function [G, Rs, C] = align_corrective_triples(M_hat, G)
   M = permute(M, [1, 4, 2, 3]);
   M = reshape(M, [2 * K, 3, F]);
 
-  Rs = zeros(3, 3, F);
+  rotations = zeros(2, 3, F);
 
   % Now extract rotations from the [c_t1 R_t ... c_tK R_t] rows.
   for t = 1:F
     % Align scaled identity matrices to scaled rotations.
     A = kron(C(t, :)', eye(2, 3));
-    Rs(:, :, t) = procrustes(A, M(:, :, t));
+    R_t = procrustes(A, M(:, :, t));
+    rotations(:, :, t) = R_t(1:2, :);
   end
 
-  % Only take i and j rows.
-  Rs = Rs(1:2, :, :);
+  % [F, K] -> [K, F]
+  coeff = C';
 end
