@@ -3,7 +3,7 @@ num_sequences = 32;
 downsample = 8;
 
 omega_stddev = 5 * pi / 180;
-scale_stddev = 1; %sqrt(2);
+scale_stddev = sqrt(2);
 noise_stddevs = [0, 0.01, 1, 100];
 
 num_noises = length(noise_stddevs);
@@ -133,5 +133,10 @@ for i = 1:num_sequences
   end
 end
 
-solutions = arrayfun(@(scene) noise_experiment_trial(solvers, scene), ...
+solutions = arrayfun(@(scene) { noise_experiment_trial(solvers, scene) }, ...
     noisy_scenes);
+n = numel(solutions{1});
+solutions = reshape(cell2mat(solutions(:)), [size(solutions), n]);
+
+save('results', 'solutions', 'solvers', 'scenes', 'noisy_scenes', ...
+    'noise_stddevs', 'omega_stddev', 'scale_stddev');
