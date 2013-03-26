@@ -11,8 +11,8 @@
 % S -- 3 x P x F
 % R -- 2 x 3 x F
 
-function [S, R] = nrsfm_fixed_rank(W, R_init, K, rho1, rho2, max_iter, mu, ...
-    tau_incr, tau_decr)
+function [S, R] = nrsfm_fixed_rank(W, R_init, S_init, K, rho1, rho2, ...
+    max_iter, mu, tau_incr, tau_decr)
   % Introduce the auxiliary variables X and Z.
   %
   % arg min_{R, S, X, Z} 1/2 sum_t ||Wt - Zt Xt||_F^2
@@ -24,35 +24,23 @@ function [S, R] = nrsfm_fixed_rank(W, R_init, K, rho1, rho2, max_iter, mu, ...
   converged = false;
   num_iter = 0;
 
-  S = zeros(3, P, F);
-  X = zeros(3, P, F);
+  S = S_init;
+  X = S_init;
   U1 = S - X;
 
   R = R_init;
   Z = R_init;
   U2 = R - Z;
 
-  % X subproblem. Least squares.
-  V = S + U1;
-  for t = 1:F
-    Zt = Z(:, :, t);
-    Wt = W(:, :, t);
-    Vt = V(:, :, t);
-    Xt = (Zt' * Zt + rho1 * eye(3)) \ (Zt' * Wt + rho1 * Vt);
-    X(:, :, t) = Xt;
-  end
-
-  % S subproblem. Projection on to rank manifold.
-  V = X - U1;
-  V = reshape(V, [3 * P, F]);
-  S = project_rank(V, K);
-  S = reshape(S, [3, P, F]);
-
-  U1 = S - X;
-
   while ~converged && num_iter < max_iter
     prev_X = X;
     prev_Z = Z;
+
+    % S subproblem. Projection on to rank manifold.
+    V = X - U1;
+    V = reshape(V, [3 * P, F]);
+    S = project_rank(V, K);
+    S = reshape(S, [3, P, F]);
 
     % X subproblem. Least squares.
     V = S + U1;
@@ -64,22 +52,16 @@ function [S, R] = nrsfm_fixed_rank(W, R_init, K, rho1, rho2, max_iter, mu, ...
       X(:, :, t) = Xt;
     end
 
-    % S subproblem. Projection on to rank manifold.
-    V = X - U1;
-    V = reshape(V, [3 * P, F]);
-    S = project_rank(V, K);
-    S = reshape(S, [3, P, F]);
-
-    % Z subproblem. Least squares.
-    for t = 1:F
-      Z(:, :, t) = W(:, :, t) / X(:, :, t);
-    end
-
     % R subproblem. Procrustes (nearest orthonormal matrix).
     V = Z - U2;
     for t = 1:F
       Rt = procrustes(eye(2, 3), V(:, :, t));
       R(:, :, t) = Rt(1:2, :);
+    end
+
+    % Z subproblem. Least squares.
+    for t = 1:F
+      Z(:, :, t) = W(:, :, t) / X(:, :, t);
     end
 
     % Update multipliers and residuals.
