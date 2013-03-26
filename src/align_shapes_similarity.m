@@ -1,50 +1,42 @@
 % Parameters:
-% S, X -- 3 x P x F non-rigid shape
+% S, X -- 3 x P shape
+%
 % S is the reference, to which X is aligned.
 
 function X = align_shapes_similarity(S, X)
-  assert(ndims(S) == 3);
+  assert(ndims(S) == 2);
   assert(size(S, 1) == 3);
   P = size(S, 2);
-  F = size(S, 3);
-  assert(ndims(X) == 3);
-  assert(size(X, 2) == P);
-  assert(size(X, 3) == F);
+  assert(ndims(X) == 2);
+  assert(all(size(X) == size(S)));
 
-  % [3, P, F] -> [P, 3, F]
-  S = permute(S, [2, 1, 3]);
-  X = permute(X, [2, 1, 3]);
+  % [3, P] -> [P, 3]
+  S = S';
+  X = X';
 
-  for t = 1:F
-    X_t = X(:, :, t);
-    S_t = S(:, :, t);
+  % Remove centroid.
+  centroid_X = mean(X);
+  centroid_S = mean(S);
+  X = bsxfun(@minus, X, centroid_X);
+  S = bsxfun(@minus, S, centroid_S);
 
-    % Remove centroid.
-    centroid_X = mean(X_t);
-    centroid_S = mean(S_t);
-    X_t = bsxfun(@minus, X_t, centroid_X);
-    S_t = bsxfun(@minus, S_t, centroid_S);
-
-    % Normalize scale.
-    x = sqrt(mean(sum(X_t .^ 2, 2), 1));
-    s = sqrt(mean(sum(S_t .^ 2, 2), 1));
-    if x == 0
-      s = 0;
-    else
-      s = s / x;
-    end
-    X_t = s * X_t;
-
-    % Align each frame individually.
-    R = procrustes(X_t, S_t);
-    X_t = X_t * R;
-
-    % Restore centroid.
-    X_t = bsxfun(@plus, X_t, centroid_S);
-
-    X(:, :, t) = X_t;
+  % Normalize scale.
+  x = sqrt(mean(sum(X .^ 2, 2), 1));
+  s = sqrt(mean(sum(S .^ 2, 2), 1));
+  if x == 0
+    s = 0;
+  else
+    s = s / x;
   end
+  X = s * X;
 
-  % [P, 3, F] -> [3, P, F]
-  X = permute(X, [2, 1, 3]);
+  % Align each frame individually.
+  R = procrustes(X, S);
+  X = X * R;
+
+  % Restore centroid.
+  X = bsxfun(@plus, X, centroid_S);
+
+  % [P, 3] -> [3, P]
+  X = X';
 end

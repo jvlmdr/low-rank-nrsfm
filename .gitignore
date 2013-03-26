@@ -1,5 +1,6 @@
 .DS_Store
 .*.swp
+*.mat
 *.mexmaci64
 data/
 output/

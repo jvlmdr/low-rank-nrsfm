@@ -75,7 +75,7 @@ for i = 1:num_sequences
     for k = 1:num_ranks
       K = ranks(k);
       solution = results(i).solvers(j, k);
-      residuals(i, j, k) = min_shape_error(scene.points, solution.points);
+      residuals(i, j, k) = min_total_shape_error(scene.points, solution.points);
     end
   end
 end

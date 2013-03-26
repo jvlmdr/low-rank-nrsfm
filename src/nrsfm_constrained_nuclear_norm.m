@@ -6,10 +6,10 @@
 % R_init -- 2 x 3 x F
 %
 % Returns:
-% R -- 2 x 3 x F
 % S -- 3 x P x F
+% R -- 2 x 3 x F
 
-function [R, S] = nrsfm_constrained_nuclear_norm(W, R_init, rho1, rho2, ...
+function [S, R] = nrsfm_constrained_nuclear_norm(W, R_init, rho1, rho2, ...
     max_iter, mu, tau_incr, tau_decr)
   % Introduce the auxiliary variables X and Z.
   %

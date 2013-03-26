@@ -103,7 +103,7 @@ S_hat = structure_to_matrix(structure_hat);
 fprintf('Reprojection error (Xiao 2004) = %g\n', ...
     norm(W - R_hat * S_hat, 'fro') / norm(W, 'fro'));
 fprintf('3D error (Xiao 2004) = %g\n', ...
-    min_shape_error(points_tilde, structure_hat));
+    min_total_shape_error(points_tilde, structure_hat));
 
 %fprintf('Any key to continue\n');
 %pause;
@@ -142,7 +142,7 @@ points_nuclear = permute(points_nuclear, [1, 3, 2]);;
 fprintf('Reprojection error (nuclear) = %g\n', ...
     norm(W - R_hat * S_nuclear, 'fro') / norm(W, 'fro'));
 fprintf('3D error (nuclear) = %g\n', ...
-    min_shape_error(points_tilde, points_nuclear));
+    min_total_shape_error(points_tilde, points_nuclear));
 
 %fprintf('Any key to continue\n');
 %pause;
@@ -162,7 +162,7 @@ fprintf('3D error (nuclear) = %g\n', ...
 %fprintf('Reprojection error (refined nuclear) = %g\n', ...
 %    norm(W - R_mat * S_mat, 'fro') / norm(W, 'fro'));
 %fprintf('3D error (refined nuclear) = %g\n', ...
-%    min_shape_error(points_tilde, points_refined_nuclear));
+%    min_total_shape_error(points_tilde, points_refined_nuclear));
 %
 %%fprintf('Any key to continue\n');
 %%pause;
@@ -183,7 +183,7 @@ S_hat = reshape(S_hat, [3 * F, P]);
 fprintf('Reprojection error (linear) = %g\n', ...
     norm(W - R_hat * S_hat, 'fro') / norm(W, 'fro'));
 fprintf('3D error (linear) = %g\n', ...
-    min_shape_error(points_tilde, structure_hat));
+    min_total_shape_error(points_tilde, structure_hat));
 
 %fprintf('Any key to continue\n');
 %pause;
@@ -203,7 +203,7 @@ fprintf('3D error (linear) = %g\n', ...
 %fprintf('Reprojection error (NRSFM nuclear) = %g\n', ...
 %    norm(W - R_mat * S_mat, 'fro') / norm(W, 'fro'));
 %fprintf('3D error (NRSFM nuclear) = %g\n', ...
-%    min_shape_error(points_tilde, points_nrsfm_nuclear));
+%    min_total_shape_error(points_tilde, points_nrsfm_nuclear));
 %
 %%fprintf('Any key to continue\n');
 %%pause;
@@ -223,7 +223,7 @@ fprintf('3D error (linear) = %g\n', ...
 %fprintf('Reprojection error (refined NRSFM nuclear) = %g\n', ...
 %    norm(W - R_mat * S_mat, 'fro') / norm(W, 'fro'));
 %fprintf('3D error (refined NRSFM nuclear) = %g\n', ...
-%    min_shape_error(points_tilde, points_refined_nrsfm_nuclear));
+%    min_total_shape_error(points_tilde, points_refined_nrsfm_nuclear));
 %
 %%fprintf('Any key to continue\n');
 %%pause;
@@ -243,7 +243,7 @@ fprintf('3D error (linear) = %g\n', ...
 %fprintf('Reprojection error (NRSFM rank) = %g\n', ...
 %    norm(W - R_mat * S_mat, 'fro') / norm(W, 'fro'));
 %fprintf('3D error (NRSFM rank) = %g\n', ...
-%    min_shape_error(points_tilde, points_nrsfm_rank));
+%    min_total_shape_error(points_tilde, points_nrsfm_rank));
 %
 %%fprintf('Any key to continue\n');
 %%pause;
@@ -263,7 +263,7 @@ fprintf('3D error (linear) = %g\n', ...
 %fprintf('Reprojection error (refined NRSFM rank) = %g\n', ...
 %    norm(W - R_mat * S_mat, 'fro') / norm(W, 'fro'));
 %fprintf('3D error (refined NRSFM rank) = %g\n', ...
-%    min_shape_error(points_tilde, points_refined_nrsfm_rank));
+%    min_total_shape_error(points_tilde, points_refined_nrsfm_rank));
 %
 %%fprintf('Any key to continue\n');
 %%pause;
@@ -285,7 +285,7 @@ S_hat = reshape(S_hat, [3 * F, P]);
 fprintf('Reprojection error (algebraic nullspace alternation) = %g\n', ...
     norm(W - R_hat * S_hat, 'fro') / norm(W, 'fro'));
 fprintf('3D error (algebraic nullspace alternation) = %g\n', ...
-    min_shape_error(points_tilde, structure_hat));
+    min_total_shape_error(points_tilde, structure_hat));
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Nullspace alternation, updating camera using structure.
@@ -304,7 +304,7 @@ S_hat = reshape(S_hat, [3 * F, P]);
 fprintf('Reprojection error (nullspace alternation) = %g\n', ...
     norm(W - R_hat * S_hat, 'fro') / norm(W, 'fro'));
 fprintf('3D error (nullspace alternation) = %g\n', ...
-    min_shape_error(points_tilde, structure_hat));
+    min_total_shape_error(points_tilde, structure_hat));
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Simple alternation, initialized using nullspace method.
@@ -324,7 +324,7 @@ S_hat = reshape(S_hat, [3 * F, P]);
 fprintf('Reprojection error (homogeneous alternation) = %g\n', ...
     norm(W - R_hat * S_hat, 'fro') / norm(W, 'fro'));
 fprintf('3D error (homogeneous alternation) = %g\n', ...
-    min_shape_error(points_tilde, structure_hat));
+    min_total_shape_error(points_tilde, structure_hat));
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Minimize projection error regularized by nuclear norm.
@@ -344,7 +344,7 @@ S_hat = reshape(S_hat, [3 * F, P]);
 fprintf('Reprojection error (nuclear norm regularizer) = %g\n', ...
     norm(W - R_hat * S_hat, 'fro') / norm(W, 'fro'));
 fprintf('3D error (nuclear norm regularizer) = %g\n', ...
-    min_shape_error(points_tilde, structure_hat));
+    min_total_shape_error(points_tilde, structure_hat));
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % BALM, initialized using nullspace method.
@@ -363,7 +363,8 @@ S_hat = reshape(S_hat, [3 * F, P]);
 
 fprintf('Reprojection error (BALM) = %g\n', ...
     norm(W - R_hat * S_hat, 'fro') / norm(W, 'fro'));
-fprintf('3D error (BALM) = %g\n', min_shape_error(points_tilde, structure_hat));
+fprintf('3D error (BALM) = %g\n', ...
+    min_total_shape_error(points_tilde, structure_hat));
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Alternation with metric projections, initialized using nullspace method.
@@ -383,7 +384,7 @@ S_hat = reshape(S_hat, [3 * F, P]);
 fprintf('Reprojection error (Alternation with metric projections) = %g\n', ...
     norm(W - R_hat * S_hat, 'fro') / norm(W, 'fro'));
 fprintf('3D error (Alternation with metric projections) = %g\n', ...
-    min_shape_error(points_tilde, structure_hat));
+    min_total_shape_error(points_tilde, structure_hat));
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % BALM with metric projections, initialized using nullspace method.
@@ -403,7 +404,7 @@ S_hat = reshape(S_hat, [3 * F, P]);
 fprintf('Reprojection error (BALM with metric projections) = %g\n', ...
     norm(W - R_hat * S_hat, 'fro') / norm(W, 'fro'));
 fprintf('3D error (BALM with metric projections) = %g\n', ...
-    min_shape_error(points_tilde, structure_hat));
+    min_total_shape_error(points_tilde, structure_hat));
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Alternation using homogeneous problem, initialized using nullspace method.
@@ -423,4 +424,4 @@ S_hat = reshape(S_hat, [3 * F, P]);
 fprintf('Reprojection error (homogeneous alternation) = %g\n', ...
     norm(W - R_hat * S_hat, 'fro') / norm(W, 'fro'));
 fprintf('3D error (homogeneous alternation) = %g\n', ...
-    min_shape_error(points_tilde, structure_hat));
+    min_total_shape_error(points_tilde, structure_hat));

@@ -133,10 +133,22 @@ for i = 1:num_sequences
   end
 end
 
-solutions = arrayfun(@(scene) { noise_experiment_trial(solvers, scene) }, ...
-    noisy_scenes);
-n = numel(solutions{1});
-solutions = reshape(cell2mat(solutions(:)), [size(solutions), n]);
-
-save('results', 'solutions', 'solvers', 'scenes', 'noisy_scenes', ...
+save('noise-experiment-setup', 'solvers', 'scenes', 'noisy_scenes', ...
     'noise_stddevs', 'omega_stddev', 'scale_stddev');
+
+trial = @(scene) { noise_experiment_trial(solvers, scene) };
+
+if exist('pararrayfun', 'file')
+  config = struct('virtual_free', '128M');
+  solutions = pararrayfun(trial, noisy_scenes, num_sequences * num_noises, ...
+      'v', config);
+else
+  warning('Could not find pararrayfun(), running in series.');
+  solutions = arrayfun(trial, noisy_scenes);
+end
+
+% Repack.
+num_solvers = numel(solutions{1});
+solutions = reshape(cell2mat(solutions(:)), [size(solutions), num_solvers]);
+
+save('noise-experiment-solutions', 'solutions');
