@@ -1,11 +1,11 @@
 % [structure, rotations, basis, coeff] =
-%   nrsfm_nullspace_alternation(projections, rotations, K, num_iter)
+%   nrsfm_nullspace_alternation(projections, rotations, K, max_iter)
 %
 % Parameters:
 % projections -- 2 x P x F
 % rotations -- 2 x 3 x F
 % K -- Shape basis size
-% num_iter -- Number of iterations of alternation to do
+% max_iter -- Number of iterations of alternation to do
 %
 % Returns:
 % structure -- 3 x P x F
@@ -14,13 +14,13 @@
 % coeff -- K x F
 
 function [structure, rotations, basis, coeff] = nrsfm_nullspace_alternation(...
-    projections, rotations, K, num_iter)
+    projections, rotations, K, max_iter)
   P = size(projections, 2);
   F = size(projections, 3);
 
   [M_hat, B_hat, W] = factorize_projections(projections, K);
 
-  for i = 1:num_iter
+  for i = 1:max_iter
     R = block_diagonal_cameras(rotations);
     [G, C] = find_corrective_matrix_nullspace(M_hat, R);
     B = inv(G) * B_hat;

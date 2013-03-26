@@ -1,11 +1,11 @@
 % [structure, rotations, basis, coeff] =
-%   nrsfm_homogeneous_alternation(projections, rotations, K)
+%   nrsfm_homogeneous_alternation(projections, rotations, basis, max_iter)
 %
 % Parameters:
 % projections -- 2 x P x F
 % rotations -- 2 x 3 x F
 % basis -- 3 x K x P
-% K -- Shape basis size
+% max_iter -- Number of iterations of alternation to do
 %
 % Returns:
 % structure -- 3 x P x F
@@ -14,7 +14,7 @@
 % coeff -- K x F
 
 function [structure, rotations, basis, coeff] = ...
-    nrsfm_homogeneous_alternation(projections, rotations, basis, num_iter)
+    nrsfm_homogeneous_alternation(projections, rotations, basis, max_iter)
   P = size(projections, 2);
   F = size(projections, 3);
   K = size(basis, 2);
@@ -22,7 +22,7 @@ function [structure, rotations, basis, coeff] = ...
   [M_hat, B_hat, W] = factorize_projections(projections, K);
   R = block_diagonal_cameras(rotations);
 
-  for i = 1:num_iter
+  for i = 1:max_iter
     % [3, K, P] -> [3K, P]
     B = basis;
     B = reshape(B, [3 * K, P]);
