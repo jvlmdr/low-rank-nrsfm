@@ -9,8 +9,8 @@
 % S -- 3 x P x F
 % R -- 2 x 3 x F
 
-function [S, R] = nrsfm_constrained_nuclear_norm(W, R_init, rho1, rho2, ...
-    max_iter, mu, tau_incr, tau_decr)
+function [S, R] = nrsfm_constrained_nuclear_norm(W, S_init, R_init, rho1, ...
+    rho2, max_iter, mu, tau_incr, tau_decr)
   % Introduce the auxiliary variables X and Z.
   %
   % arg min_{R, S, X, Z} nuclear_norm(S)
