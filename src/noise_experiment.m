@@ -4,7 +4,7 @@ downsample = 8;
 
 omega_stddev = 5 * pi / 180;
 scale_stddev = sqrt(2);
-noise_stddevs = [0, 0.01, 1, 100];
+noise_stddevs = [0, 0.01, 0.1, 1, 10, 100];
 
 num_noises = length(noise_stddevs);
 
