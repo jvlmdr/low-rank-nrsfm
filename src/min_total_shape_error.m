@@ -15,8 +15,8 @@ function residual = min_total_shape_error(S, X)
   totals = zeros(F, 1);
 
   for t = 1:F
-    [residuals(t), totals(t)] = min_shape_error(S, X);
+    [residuals(t), totals(t)] = min_shape_error(S(:, :, t), X(:, :, t));
   end
 
-  residual = sum(residual) / sum(total);
+  residual = sum(residuals) / sum(totals);
 end
