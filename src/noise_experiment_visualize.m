@@ -35,7 +35,9 @@ for i = 1:num_noises
   axis([a, b, 0, max(rel_errors(:)) * 1.05]);
   title(sprintf('Noise level %g', noise_stddev));
   set(gca, 'XTick', 1:num_solvers);
-  %set(gca, 'XTickLabel', {solvers.name});
+
+  [names, ids] = nrsfm_solver_names(solvers);
+  set(gca, 'XTickLabel', ids);
 
 %  filename = sprintf('../figures/noise/%d-%g.eps', i, noise_stddev);
 %  print(filename, '-depsc2');
