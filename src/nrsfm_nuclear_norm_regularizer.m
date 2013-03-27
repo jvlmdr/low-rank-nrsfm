@@ -15,7 +15,8 @@
 % rotations -- 2 x 3 x F
 
 function [structure, rotations] = nrsfm_nuclear_norm_regularizer(...
-    projections, rotations, lambda, rho, max_iter, mu, tau_incr, tau_decr)
+    projections, structure, rotations, lambda, rho, max_iter, mu, tau_incr, ...
+    tau_decr)
   % Introduce the auxiliary variable X.
   % arg min_{R, S, X} 1/2 sum_ti ||w_ti - R_t x_ti||^2 + lambda nuclear_norm(S)
   % s.t.  R_t R_t' = I,  S - X = 0
@@ -27,12 +28,19 @@ function [structure, rotations] = nrsfm_nuclear_norm_regularizer(...
   num_iter = 0;
 
   R = rotations;
-  S = zeros(3, P, F);
-  X = zeros(3, P, F);
+  S = structure;
+  X = structure;
   U = S - X;
 
   while ~converged && num_iter < max_iter
     prev_X = X;
+
+    % S subproblem. Singular value soft thresholding.
+    % arg min_{S} lambda nuclear_norm(S) + rho/2 ||S - X + U||_F^2
+    V = X - U;
+    V = reshape(V, [3 * P, F]);
+    S = singular_value_soft_threshold(V, lambda / rho);
+    S = reshape(S, [3, P, F]);
 
     % X subproblem. Linear least squares.
     % arg min_{X} 1/2 sum_ti ||w_ti - R_t x_ti||^2 + rho/2 ||S - X + U||_F^2
@@ -44,13 +52,6 @@ function [structure, rotations] = nrsfm_nuclear_norm_regularizer(...
       X_t = (R_t' * R_t + rho * eye(3)) \ (R_t' * W_t + rho * V_t);
       X(:, :, t) = X_t;
     end
-
-    % S subproblem. Singular value soft thresholding.
-    % arg min_{S} lambda nuclear_norm(S) + rho/2 ||S - X + U||_F^2
-    V = X - U;
-    V = reshape(V, [3 * P, F]);
-    S = singular_value_soft_threshold(V, lambda / rho);
-    S = reshape(S, [3, P, F]);
 
     % R subproblem. Orthogonal Procrustes problem
     % arg min_{R} 1/2 sum_t ||W_t - R_t X_t||^2  s.t.  R_t R_t' = I
