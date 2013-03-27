@@ -120,7 +120,7 @@ R_hat = block_diagonal_cameras(rotations_trace);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Dai 2012 solution for structure
 
-fprintf('Nuclear norm solution...\n');
+fprintf('Constrained nuclear norm solution...\n');
 
 % Find structure.
 structure_hat = find_structure_constrained_nuclear_norm(projections, ...
@@ -132,6 +132,27 @@ S_hat = structure_to_matrix(structure_hat);
 fprintf('Reprojection error (structure only, nuclear) = %g\n', ...
     norm(W - R_hat * S_hat, 'fro') / norm(W, 'fro'));
 fprintf('3D error (structure only, nuclear) = %g\n', ...
+    min_total_shape_error(points_tilde, structure_hat));
+
+%fprintf('Any key to continue\n');
+%pause;
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Dai 2012 solution for structure, but with regularization not constraint.
+
+fprintf('Regularized nuclear norm solution...\n');
+
+% Find structure.
+structure_hat = find_structure_nuclear_norm_regularized(projections, ...
+    rotations_trace, 1, 1, 80, 10, 10, 10);
+
+R_hat = block_diagonal_cameras(rotations_trace);
+S_hat = structure_to_matrix(structure_hat);
+
+fprintf(...
+    'Reprojection error (structure only, nuclear norm regularization) = %g\n', ...
+    norm(W - R_hat * S_hat, 'fro') / norm(W, 'fro'));
+fprintf('3D error (structure only, nuclear norm regularization) = %g\n', ...
     min_total_shape_error(points_tilde, structure_hat));
 
 %fprintf('Any key to continue\n');
