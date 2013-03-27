@@ -15,7 +15,7 @@ mean_errors = shiftdim(mean(shape_errors), 1);
 mean_errors = permute(mean_errors, [1, 3, 2]);
 
 % Average over frames and sequences.
-mean_benchmark_errors = shiftdim(mean(mean(benchmark_errors)), 2)
+mean_benchmark_errors = shiftdim(mean(mean(benchmark_errors)), 2);
 
 for i = 1:num_noises
   noise_stddev = noise_stddevs(i);
