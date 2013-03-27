@@ -111,7 +111,7 @@ fprintf('3D error (Xiao 2004) = %g\n', ...
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Modified solution for cameras of Dai 2012
 
-rotations_trace = find_rotations(projections, K, 1e6);
+rotations_trace = find_rotations_trace(projections, K, 1e6);
 %rotations_trace = find_rotations_dai(M_hat);
 
 % Convert to block-diagonal.

@@ -1,3 +1,6 @@
+% [rotations, coeff, M_hat, B_hat, G] = find_rotations_trace(projections, K,
+%     lambda)
+%
 % Parameters:
 % projections -- 2 x P x F
 % K -- Basis size
@@ -10,12 +13,11 @@
 % B_hat -- 3K x P
 % G -- Corrective triple. 3K x 3
 
-function [rotations, coeff, M_hat, B_hat, G] = find_rotations(projections, K, ...
-    lambda)
+function [rotations, coeff, M_hat, B_hat, G] = find_rotations_trace(...
+    projections, K, lambda)
+  % Find Q = G G', where G is the 3K x 3 matrix which best corrects M_hat.
 
   [M_hat, B_hat, W] = factorize_projections(projections, K);
-
-  % Find Q = G G', where G is the 3K x 3 matrix which best corrects M_hat.
 
   H = construct_symmetric(3 * K);
   n = (3 * K) * (3 * K + 1) / 2;
