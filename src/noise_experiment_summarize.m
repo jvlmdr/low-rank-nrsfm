@@ -29,4 +29,4 @@ for i = 1:num_sequences
   end
 end
 
-save('noise-experiment-summary', 'shape_errors');
+save('noise-experiment-summary', 'shape_errors', 'benchmark_errors');
