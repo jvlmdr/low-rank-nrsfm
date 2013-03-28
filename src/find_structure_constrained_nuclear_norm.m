@@ -41,7 +41,9 @@ function structure = find_structure_constrained_nuclear_norm(projections, ...
       R_t = rotations(:, :, t);
       W_t = projections(:, :, t);
       V_t = V(:, :, t);
-      S_t = V_t + R_t \ (W_t - R_t * V_t);
+      % For some reason this is very wrong:
+      % S_t = V_t + R_t \ (W_t - R_t * V_t);
+      S_t = V_t + pinv(R_t) * (W_t - R_t * V_t);
       S(:, :, t) = S_t;
     end
 
@@ -62,7 +64,7 @@ function structure = find_structure_constrained_nuclear_norm(projections, ...
     norm_r = norm(r(:));
     norm_s = norm(s(:));
 
-    fprintf('%12d %12g %12g %12g\n', num_iter, rho, norm_r, norm_s);
+    fprintf('%6d: %8g %8g %8g\n', num_iter, rho, norm_r, norm_s);
 
     if num_iter > 0 && num_iter < max_iter / 2
       if norm_r ~= 0 && norm_s ~= 0
@@ -78,5 +80,5 @@ function structure = find_structure_constrained_nuclear_norm(projections, ...
   end
 
   % Use Z to get low rank (to numerical precision).
-  structure = reshape(Z, [3, P, F]);
+  structure = Z;
 end

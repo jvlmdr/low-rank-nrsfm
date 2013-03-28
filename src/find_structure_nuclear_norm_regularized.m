@@ -76,5 +76,5 @@ function structure = find_structure_nuclear_norm_regularized(projections, ...
   end
 
   % Use Z to get low rank (to numerical precision).
-  structure = reshape(Z, [3, P, F]);
+  structure = Z;
 end

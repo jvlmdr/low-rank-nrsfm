@@ -1,83 +1,71 @@
 % Solves
-%   arg min_{R, S} nuclear_norm(S) s.t. Wt = Rt St, Rt Rt' = I for all t.
+%   arg min_{R, S} nuclear_norm(S)  s.t.  w_ti = R_t s_ti,  R_t R_t' = I
 %
 % Parameters:
-% W -- 2 x P x F
-% R_init -- 2 x 3 x F
+% projections -- 2 x P x F
+% structure -- 3 x P x F
+% rotations -- 2 x 3 x F
 %
 % Returns:
-% S -- 3 x P x F
-% R -- 2 x 3 x F
+% structure -- 3 x P x F
+% rotations -- 2 x 3 x F
 
-function [S, R] = nrsfm_constrained_nuclear_norm(W, S_init, R_init, rho1, ...
-    rho2, max_iter, mu, tau_incr, tau_decr)
+function [structure, rotations] = nrsfm_constrained_nuclear_norm(...
+    projections, structure, rotations, rho1, rho2, max_iter, mu, tau_incr, ...
+    tau_decr)
   % Introduce the auxiliary variables X and Z.
   %
   % arg min_{R, S, X, Z} nuclear_norm(S)
-  % s.t. S = X, R = Z, Wt = Zt Xt, Rt Rt' = I for all t.
+  % s.t. S = X, R = Z, W_t = Z_t X_t, R_t R_t' = I for all t.
 
-  P = size(W, 2);
-  F = size(W, 3);
+  P = size(projections, 2);
+  F = size(projections, 3);
 
   converged = false;
   num_iter = 0;
 
-  S = zeros(3, P, F);
-  X = zeros(3, P, F);
+  S = structure;
+  X = structure;
   U1 = S - X;
 
-  R = R_init;
-  Z = R_init;
+  R = rotations;
+  Z = rotations;
   U2 = R - Z;
-
-  % X subproblem. Nearest point on subspace.
-  V = S + U1;
-  for t = 1:F
-    Zt = Z(:, :, t);
-    Wt = W(:, :, t);
-    Vt = V(:, :, t);
-    Xt = Vt + Zt \ (Wt - Zt * Vt);
-    X(:, :, t) = Xt;
-  end
-
-  % S subproblem. Singular value soft thresholding.
-  V = X - U1;
-  V = reshape(V, [3 * P, F]);
-  S = singular_value_soft_threshold(V, 1 / rho1);
-  S = reshape(S, [3, P, F]);
-
-  U1 = S - X;
 
   while ~converged && num_iter < max_iter
     prev_X = X;
     prev_Z = Z;
 
+    % S subproblem. Singular value soft thresholding.
+    V = X - U1;
+    V = k_structure_to_matrix(V);
+    V = k_reshape(V, 3);
+    S = singular_value_soft_threshold(V, 1 / rho1);
+    S = k_unreshape(S, 3);
+    S = structure_from_matrix(S);
+
     % X subproblem. Nearest point on subspace.
     V = S + U1;
     for t = 1:F
-      Zt = Z(:, :, t);
-      Wt = W(:, :, t);
-      Vt = V(:, :, t);
-      Xt = Vt + Zt \ (Wt - Zt * Vt);
-      X(:, :, t) = Xt;
-    end
-
-    % S subproblem. Singular value soft thresholding.
-    V = X - U1;
-    V = reshape(V, [3 * P, F]);
-    S = singular_value_soft_threshold(V, 1 / rho1);
-    S = reshape(S, [3, P, F]);
-
-    % Z subproblem. Linear equations.
-    for t = 1:F
-      Z(:, :, t) = W(:, :, t) / X(:, :, t);
+      Z_t = Z(:, :, t);
+      W_t = projections(:, :, t);
+      V_t = V(:, :, t);
+      X_t = V_t + pinv(Z_t) * (W_t - Z_t * V_t);
+      X(:, :, t) = X_t;
     end
 
     % R subproblem. Procrustes (nearest orthonormal matrix).
     V = Z - U2;
     for t = 1:F
-      Rt = procrustes(eye(2, 3), V(:, :, t));
-      R(:, :, t) = Rt(1:2, :);
+      %R_t = procrustes(eye(2, 3), V(:, :, t));
+      R_t = procrustes(eye(3), V(:, :, t)')';
+      R(:, :, t) = R_t(1:2, :);
+    end
+
+    % Z subproblem. Linear equations.
+    for t = 1:F
+      W_t = projections(:, :, t);
+      Z(:, :, t) = W_t / X(:, :, t);
     end
 
     % Update multipliers and residuals.
@@ -117,4 +105,7 @@ function [S, R] = nrsfm_constrained_nuclear_norm(W, S_init, R_init, rho1, ...
 
     num_iter = num_iter + 1;
   end
+
+  structure = S;
+  rotations = R;
 end

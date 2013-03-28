@@ -7,6 +7,7 @@
 %
 % Parameters:
 % projections -- 2 x P x F
+% structure -- 3 x P x F
 % rotations -- 2 x 3 x F
 % lambda
 %

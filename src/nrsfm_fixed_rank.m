@@ -1,35 +1,39 @@
 % Solves
-%   arg min_{R, S} 1/2 sum_t ||Wt - Rt St||_F^2
-%   s.t. Rt Rt' = I for all t, rank(S) <= K.
+%   arg min_{R, S} 1/2 sum_t ||W_t - R_t S_t||_F^2
+%   s.t. R_t R_t' = I for all t, rank(S) <= K.
+%
+% [structure, rotations] = nrsfm_fixed_rank(projections, structure, rotations,
+%     K, rho1, rho2, max_iter, mu, tau_incr, tau_decr)
 %
 % Parameters:
-% W -- 2 x P x F
-% R_init -- 2 x 3 x F
+% projections -- 2 x P x F
+% structure -- 3 x P x F
+% rotations -- 2 x 3 x F
 % K -- Rank of structure
 %
 % Returns:
-% S -- 3 x P x F
-% R -- 2 x 3 x F
+% structure -- 3 x P x F
+% rotations -- 2 x 3 x F
 
-function [S, R] = nrsfm_fixed_rank(W, R_init, S_init, K, rho1, rho2, ...
-    max_iter, mu, tau_incr, tau_decr)
+function [structure, rotations] = nrsfm_fixed_rank(projections, structure, ...
+    rotations, K, rho1, rho2, max_iter, mu, tau_incr, tau_decr)
   % Introduce the auxiliary variables X and Z.
   %
-  % arg min_{R, S, X, Z} 1/2 sum_t ||Wt - Zt Xt||_F^2
-  % s.t. Rt Rt' = I for all t, rank(S) <= K.
+  % arg min_{R, S, X, Z} 1/2 sum_t ||W_t - Z_t X_t||_F^2
+  % s.t. R_t R_t' = I for all t, rank(S) <= K.
 
-  P = size(W, 2);
-  F = size(W, 3);
+  P = size(projections, 2);
+  F = size(projections, 3);
 
   converged = false;
   num_iter = 0;
 
-  S = S_init;
-  X = S_init;
+  S = structure;
+  X = structure;
   U1 = S - X;
 
-  R = R_init;
-  Z = R_init;
+  R = rotations;
+  Z = rotations;
   U2 = R - Z;
 
   while ~converged && num_iter < max_iter
@@ -38,30 +42,33 @@ function [S, R] = nrsfm_fixed_rank(W, R_init, S_init, K, rho1, rho2, ...
 
     % S subproblem. Projection on to rank manifold.
     V = X - U1;
-    V = reshape(V, [3 * P, F]);
+    V = structure_to_matrix(V);
+    V = k_reshape(V, 3);
     S = project_rank(V, K);
-    S = reshape(S, [3, P, F]);
+    S = k_unreshape(S, 3);
+    S = structure_from_matrix(S);
 
     % X subproblem. Least squares.
     V = S + U1;
     for t = 1:F
-      Zt = Z(:, :, t);
-      Wt = W(:, :, t);
-      Vt = V(:, :, t);
-      Xt = (Zt' * Zt + rho1 * eye(3)) \ (Zt' * Wt + rho1 * Vt);
-      X(:, :, t) = Xt;
+      Z_t = Z(:, :, t);
+      W_t = projections(:, :, t);
+      V_t = V(:, :, t);
+      X_t = (Z_t' * Z_t + rho1 * eye(3)) \ (Z_t' * W_t + rho1 * V_t);
+      X(:, :, t) = X_t;
     end
 
     % R subproblem. Procrustes (nearest orthonormal matrix).
     V = Z - U2;
     for t = 1:F
-      Rt = procrustes(eye(2, 3), V(:, :, t));
-      R(:, :, t) = Rt(1:2, :);
+      R_t = procrustes(eye(2, 3), V(:, :, t));
+      R(:, :, t) = R_t(1:2, :);
     end
 
     % Z subproblem. Least squares.
     for t = 1:F
-      Z(:, :, t) = W(:, :, t) / X(:, :, t);
+      W_t = projections(:, :, t);
+      Z(:, :, t) = W_t / X(:, :, t);
     end
 
     % Update multipliers and residuals.
@@ -101,4 +108,9 @@ function [S, R] = nrsfm_fixed_rank(W, R_init, S_init, K, rho1, rho2, ...
 
     num_iter = num_iter + 1;
   end
+
+  % Take structure which is low rank.
+  structure = Z;
+  % Take rotations which are on SO(3).
+  rotations = R;
 end

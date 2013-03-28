@@ -35,8 +35,7 @@ function [structure, rotations, basis, coeff] = ...
   % [2F, 3K] -> [2, F, 3, K]
   M = reshape(M, [2, F, 3, K]);
 
-  % [2, P, F] -> [2, F, P] -> [2F, P]
-  W = reshape(permute(projections, [1, 3, 2]), [2 * F, P]);
+  W = projections_to_matrix(projections);
 
   converged = false;
   num_iter = 0;
@@ -51,9 +50,8 @@ function [structure, rotations, basis, coeff] = ...
     % arg min_{M, B} 1/2 ||W - MB||_F^2 + 1/2 rho ||M - N + U||_F^2
     V = N - U;
     V = reshape(V, [2 * F, 3 * K]);
-    [M_mat, B_mat] = svd_proximity_operator(W, V, rho);
-    M = reshape(M_mat, [2, F, 3, K]);
-    B = reshape(B_mat, [3, K, P]);
+    [M, B] = svd_proximity_operator(W, V, rho);
+    M = reshape(M, [2, F, 3, K]);
 
     % N subproblem. "NRSFM Manifold Projector"
     % arg min_{N} ||M - N + U||_F^2  s.t.  N \in {motion matrices}
@@ -93,8 +91,7 @@ function [structure, rotations, basis, coeff] = ...
     num_iter = num_iter + 1;
   end
 
-  % [3K, P] -> [3, K, P]
-  basis = reshape(B, [3, K, P]);
+  basis = basis_from_matrix(B);
   %basis = find_basis(projections, rotations, coeff);
 
   structure = compose_structure(basis, coeff);

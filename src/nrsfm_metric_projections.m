@@ -34,8 +34,7 @@ function [structure, rotations, basis, coeff] = nrsfm_metric_projections(...
   % [2F, 3K] -> [2, F, 3, K]
   M = reshape(M, [2, F, 3, K]);
 
-  % [2, P, F] -> [2, F, P] -> [2F, P]
-  W = reshape(permute(projections, [1, 3, 2]), [2 * F, P]);
+  W = projections_to_matrix(projections);
 
   B = zeros(3 * K, P);
 
@@ -59,8 +58,6 @@ function [structure, rotations, basis, coeff] = nrsfm_metric_projections(...
     % Minimize projection error.
     B = M \ W;
     err2 = norm(W - M * B, 'fro');
-    % [3K, P] -> [3, K, P]
-    basis = reshape(B, [3, K, P]);
 
     % Minimize projection error.
     M = W / B;
@@ -72,5 +69,6 @@ function [structure, rotations, basis, coeff] = nrsfm_metric_projections(...
     %fprintf('%6d\n', i);
   end
 
+  basis = basis_from_matrix(B);
   structure = compose_structure(basis, coeff);
 end
