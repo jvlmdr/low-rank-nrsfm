@@ -13,7 +13,8 @@ function rotations = find_rotations_rigid(projections)
 
   [~, subset] = construct_symmetric(3);
 
-  cvx_begin sdp;
+  cvx_solver sedumi;
+  cvx_begin sdp quiet;
     variable Q(3, 3) symmetric;
     q = Q(subset)';
     

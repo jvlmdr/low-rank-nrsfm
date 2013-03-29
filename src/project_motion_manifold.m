@@ -17,6 +17,7 @@ function [M, c, R] = project_motion_manifold(M)
     E = E - M_i(:) * M_i(:)';
   end
 
+%%  cvx_solver sedumi;
 %%  cvx_begin sdp quiet;
 %%    variable X(6, 6) symmetric
 %%    A = X(1:3, 1:3);
