@@ -170,7 +170,7 @@ save('noise-experiment-setup', 'solvers', 'scenes', 'noisy_scenes', ...
 trial = @(scene) { noise_experiment_trial(solvers, scene) };
 
 if exist('pararrayfun', 'file')
-  config = struct('virtual_free', '128M');
+  config = struct('h_cpu', '4:00:00', 'virtual_free', '1024M');
   solutions = pararrayfun(trial, noisy_scenes, num_sequences * num_noises, ...
       'v', config);
 else
