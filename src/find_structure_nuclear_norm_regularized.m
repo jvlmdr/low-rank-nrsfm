@@ -48,7 +48,7 @@ function structure = find_structure_nuclear_norm_regularized(projections, ...
     V = S + U;
     V = structure_to_matrix(V);
     V = k_reshape(V, 3);
-    Z = singular_value_soft_threshold(V, 1 / rho);
+    Z = singular_value_soft_threshold(V, lambda / rho);
     Z = k_unreshape(Z, 3);
     Z = structure_from_matrix(Z);
 

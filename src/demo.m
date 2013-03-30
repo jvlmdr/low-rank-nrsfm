@@ -2,47 +2,58 @@ close all;
 rng('default');
 
 K = 5;
-scale_stddev = sqrt(2);
-use_akhter_data = false;
+scale_stddev = 1; %sqrt(2);
+omega_stddev = 1 / 180 * pi;
+use_akhter_data = input('Use data of Akhter? (true, false) ');
 
 if use_akhter_data
   % Load mocap sequence.
-  mocap_file = '../data/akhter-2008/yoga.mat';
+  seq_name = input('Sequence? (drink, pickup, stretch, yoga) ', 's');
+  mocap_file = ['../data/akhter-2008/', seq_name];
   load(mocap_file, 'S', 'Rs');
   F = size(Rs, 1) / 2;
   P = size(S, 2);
 
-  % [2F, 3] -> [2, F, 3] -> [2, 3, F]
-  rotations = permute(reshape(Rs, [2, F, 3]), [1, 3, 2]);
+%  % [2F, 3] -> [2, F, 3] -> [2, 3, F]
+%  rotations = permute(reshape(Rs, [2, F, 3]), [1, 3, 2]);
+%  % Scale each frame.
+%  scales = exp(log(scale_stddev) * randn(F, 1));
+%  scaled_rotations = bsxfun(@times, rotations, reshape(scales, [1, 1, F]));
   clear Rs;
+
   structure = structure_from_matrix(S);
   clear S;
-
-  % Scale each frame.
-  scales = exp(log(scale_stddev) * randn(F, 1));
-  scaled_rotations = bsxfun(@times, rotations, reshape(scales, [1, 1, F]));
 else
   % Load mocap sequence.
   data = load('../data/mocap-data.mat');
+  num_sequences = size(data.sequences, 4);
+  mocap_index = input(sprintf('Mocap index? (1, ..., %d) ', num_sequences));
   F = size(data.sequences, 1);
   P = size(data.sequences, 2);
-  structure = data.sequences(:, :, :, 1);
-
-  % Generate camera motion.
-  scene = generate_scene_for_sequence(structure, 20 * 180 / pi, scale_stddev);
-
+  structure = data.sequences(:, :, :, mocap_index);
   % [F, P, 3] -> [3, P, F]
   structure = permute(structure, [3, 2, 1]);
+end
 
-  % Extract cameras.
-  scales = zeros(F, 1);
-  rotations = zeros(2, 3, F);
-  scaled_rotations = zeros(2, 3, F);
-  for t = 1:F
-    scaled_rotations(:, :, t) = scene.cameras(t).P(1:2, 1:3);
-    scales(t) = norm(scaled_rotations(:, :, t), 'fro') / sqrt(2);
-    rotations(:, :, t) = 1 / scales(t) * scaled_rotations(:, :, t);
-  end
+% Angular change in each frame.
+%omegas = omega_stddev * randn(F, 1);
+omegas = omega_stddev * ones(F, 1);
+% Angle in each frame.
+thetas = cumsum(omegas) + rand() * 2 * pi;
+% Scale in each frame.
+scales = exp(log(scale_stddev) * randn(F, 1));
+
+% Generate camera motion.
+scene = generate_scene_for_sequence(structure, thetas, scales);
+
+% Extract cameras.
+scales = zeros(F, 1);
+rotations = zeros(2, 3, F);
+scaled_rotations = zeros(2, 3, F);
+for t = 1:F
+  scaled_rotations(:, :, t) = scene.cameras(t).P(1:2, 1:3);
+  scales(t) = norm(scaled_rotations(:, :, t), 'fro') / sqrt(2);
+  rotations(:, :, t) = 1 / scales(t) * scaled_rotations(:, :, t);
 end
 
 % Subtract centroid.
@@ -112,6 +123,27 @@ fprintf('3D error (structure only, nuclear) = %g\n', ...
 
 structure_nuclear = structure_hat;
 [basis_nuclear, coeff_nuclear] = factorize_structure(structure_nuclear, K);
+
+%fprintf('Any key to continue\n');
+%pause;
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Rank constraint by iterating Dai 2012 solution for structure
+
+fprintf('Rank problem by sweeping lambda...\n');
+
+rho = 1;
+max_iter = 200;
+structure_hat = find_structure_nuclear_norm_sweep(projections_tilde, ...
+    rotations_trace, K, rho, max_iter, 10, 10, 10);
+
+R_hat = block_diagonal_cameras(rotations_trace);
+S_hat = structure_to_matrix(structure_hat);
+
+fprintf('Reprojection error (structure only, nuclear) = %g\n', ...
+    norm(W_tilde - R_hat * S_hat, 'fro') / norm(W_tilde, 'fro'));
+fprintf('3D error (structure only, nuclear) = %g\n', ...
+    min_total_shape_error(structure_tilde, structure_hat));
 
 %fprintf('Any key to continue\n');
 %pause;

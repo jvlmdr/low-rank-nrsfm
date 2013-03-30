@@ -47,7 +47,7 @@ for i = 1:num_sequences
 end
 
 % Generate a camera for each sequence and project it.
-scenes = generate_scene_for_each_sequence(sequences, omega_stddev, ...
+scenes = generate_random_scene_for_all_sequences(sequences, omega_stddev, ...
     scale_stddev);
 
 % Solvers which don't require initialization.
