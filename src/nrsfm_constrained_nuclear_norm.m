@@ -38,7 +38,7 @@ function [structure, rotations] = nrsfm_constrained_nuclear_norm(...
 
     % S subproblem. Singular value soft thresholding.
     V = X - U1;
-    V = k_structure_to_matrix(V);
+    V = structure_to_matrix(V);
     V = k_reshape(V, 3);
     S = singular_value_soft_threshold(V, 1 / rho1);
     S = k_unreshape(S, 3);
