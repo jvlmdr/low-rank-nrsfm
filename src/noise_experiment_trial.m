@@ -1,5 +1,6 @@
 function solutions = noise_experiment_trial(solvers, scene)
   projections = scene.projections;
+  projections = bsxfun(@minus, projections, mean(projections, 2));
 
   % Solve for cameras using all methods.
   cameras = arrayfun(@(solver) find_cameras(solver, projections), ...
@@ -46,7 +47,7 @@ end
 function solution = find_full_init(solver, projections, camera)
   fprintf('Solving ''%s''...\n', solver.name);
   rotations = camera.rotations;
-  [rotations, structure, basis, coeff] = solver.solve(projections, rotations);
+  [structure, rotations, basis, coeff] = solver.solve(projections, rotations);
   solution = struct('rotations', rotations, 'structure', structure, ...
       'basis', basis, 'coeff', coeff, 'solver', solver);
 end
