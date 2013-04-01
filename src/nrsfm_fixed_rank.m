@@ -110,7 +110,7 @@ function [structure, rotations] = nrsfm_fixed_rank(projections, structure, ...
   end
 
   % Take structure which is low rank.
-  structure = Z;
+  structure = X;
   % Take rotations which are on SO(3).
   rotations = R;
 end

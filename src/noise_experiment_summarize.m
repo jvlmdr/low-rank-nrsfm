@@ -1,7 +1,12 @@
+num_frames = size(solutions(1).structure, 3);
+num_points = size(solutions(1).structure, 2);
+num_sequences = size(solutions, 1);
+num_noises = size(solutions, 2);
+num_solvers = size(solutions, 3);
+
 shape_errors = zeros(num_frames, num_sequences, num_noises, num_solvers);
 for i = 1:num_sequences
   S = scenes(i).points;
-  S = permute(S, [3, 2, 1]);
 
   for j = 1:num_noises
     for k = 1:num_solvers
@@ -17,7 +22,6 @@ end
 benchmark_errors = zeros(num_frames, num_sequences, num_noises);
 for i = 1:num_sequences
   S = scenes(i).points;
-  S = permute(S, [3, 2, 1]);
 
   for j = 1:num_noises
     projections = noisy_scenes(i, j).projections;
