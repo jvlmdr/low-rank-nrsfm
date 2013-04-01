@@ -1,69 +1,63 @@
 % Parameters:
-% W -- 2 x P x F
-% R_init -- 2 x 3 x F
-% S_init -- 3 x P x F
-% K -- Rank of structure
+% projections -- 2 x P x F
+% rotations -- 2 x 3 x F
+% basis -- 3 x K x P
+% coeff -- K x F
 %
 % Returns:
-% R -- 2 x 3 x F
-% S -- 3 x P x F
+% structure -- 3 x P x F
+% rotations -- 2 x 3 x F
+% basis -- 3 x K x P
+% coeff -- K x F
 
-function [R, S, B, C] = nrsfm_nonlinear(W, R_init, S_init, K, max_iter, tol)
-  assert(ndims(W) == 3);
-  assert(size(W, 1) == 2);
-  P = size(W, 2);
-  F = size(W, 3);
+function [structure, rotations, basis, coeff] = nrsfm_nonlinear(projections, ...
+    rotations, basis, coeff, max_iter, tol)
+  assert(ndims(projections) == 3);
+  assert(size(projections, 1) == 2);
+  P = size(projections, 2);
+  F = size(projections, 3);
+  K = size(basis, 2);
 
-  assert(ndims(R_init) == 3);
-  assert(all(size(R_init) == [2, 3, F]));
+  assert(ndims(rotations) == 3);
+  assert(all(size(rotations) == [2, 3, F]));
 
-  assert(ndims(S_init) == 3);
-  assert(all(size(S_init) == [3, P, F]));
+  assert(ndims(basis) == 3);
+  assert(all(size(basis) == [3, K, P]));
+
+  assert(ndims(coeff) == 2);
+  assert(all(size(coeff) == [K, F]));
 
   % Convert rotations to quaternions.
-  Q_init = zeros(4, F);
+  quaternions = zeros(4, F);
   for t = 1:F
-    Rt = R_init(:, :, t);
-    Rt = [Rt; cross(Rt(1, :), Rt(2, :))];
-    Q_init(:, t) = rot2quat(Rt);
+    R_t = rotations(:, :, t);
+    R_t = [R_t; cross(R_t(1, :), R_t(2, :))];
+    quaternions(:, t) = rot2quat(R_t);
   end
-
-  % Convert structure to basis and coefficients.
-  S = reshape(S_init, [3 * P, F]);
-  [U, D, V] = svd(S);
-  % 3 x K x P basis vectors
-  B_init = U(:, 1:K);
-  B_init = permute(reshape(B_init, [3, P, K]), [1, 3, 2]);
-  % K x F coefficients
-  C_init = D(1:K, 1:K) * V(:, 1:K)';
 
   % Compute initial residual for debug purposes. Should reassure us that
   % quaternion conversion worked and matrices are being addressed correctly.
-  W_mat = reshape(permute(W, [1, 3, 2]), [2 * F, P]);
-  R_mat = block_diagonal_cameras(R_init);
-  B_mat = reshape(permute(B_init, [1, 3, 2]), [3 * P, K]);
-  S_mat = B_mat * C_init;
-  S_mat = reshape(permute(reshape(S_mat, [3, P, F]), [1, 3, 2]), [3 * F, P]);
-  fprintf('Initial residual: %g\n', ...
-      1/2 * norm(W_mat - R_mat * S_mat, 'fro') ^ 2);
+  W = projections_to_matrix(projections);
+  R = block_diagonal_cameras(rotations);
+  structure = compose_structure(basis, coeff);
+  S = structure_to_matrix(structure);
+  fprintf('Initial residual: %g\n', 1/2 * norm(W - R * S, 'fro') ^ 2);
 
   % Solve.
-  [Q, B, C] = nrsfm_nonlinear_mex(W, Q_init, B_init, C_init, max_iter, tol);
+  [quaternions, basis, coeff] = nrsfm_nonlinear_mex(projections, ...
+      quaternions, basis, coeff, max_iter, tol);
 
-  % Compose structure.
-  B_mat = reshape(permute(B, [1, 3, 2]), [3 * P, K]);
-  S = B_mat * C;
-  S = reshape(S, [3, P, F]);
+  structure = compose_structure(basis, coeff);
 
   % Convert back to rotation matrices.
-  R = zeros(2, 3, F);
+  rotations = zeros(2, 3, F);
   for t = 1:F
-    Rt = quat2rot(Q(:, t));
-    R(:, :, t) = Rt(1:2, :);
+    R_t = quat2rot(quaternions(:, t));
+    rotations(:, :, t) = R_t(1:2, :);
   end
 
   % Compute final residual for debug purposes.
-  R_mat = block_diagonal_cameras(R);
-  S_mat = reshape(permute(S, [1, 3, 2]), [3 * F, P]);
-  fprintf('Final residual: %g\n', 1/2 * norm(W_mat - R_mat * S_mat, 'fro') ^ 2);
+  R = block_diagonal_cameras(rotations);
+  S = structure_to_matrix(structure);
+  fprintf('Final residual: %g\n', 1/2 * norm(W - R * S, 'fro') ^ 2);
 end

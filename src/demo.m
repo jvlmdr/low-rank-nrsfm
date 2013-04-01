@@ -59,14 +59,15 @@ end
 % Subtract centroid.
 centroid = mean(structure, 2);
 structure_tilde = bsxfun(@minus, structure, centroid);
-% Project S on to low-rank manifold.
-S = structure_to_matrix(structure_tilde);
-S_sharp = k_reshape(S, 3);
-S_sharp = project_rank(S_sharp, K);
-S = k_unreshape(S_sharp, 3);
-% Restore centroid.
-structure_tilde = structure_from_matrix(S);
-structure = bsxfun(@plus, structure_tilde, centroid);
+
+%% Project S on to low-rank manifold.
+%S = structure_to_matrix(structure_tilde);
+%S_sharp = k_reshape(S, 3);
+%S_sharp = project_rank(S_sharp, K);
+%S = k_unreshape(S_sharp, 3);
+%% Restore centroid.
+%structure_tilde = structure_from_matrix(S);
+%structure = bsxfun(@plus, structure_tilde, centroid);
 
 % Project.
 R = block_diagonal_cameras(scaled_rotations);
@@ -111,9 +112,9 @@ fprintf('Constrained nuclear norm solution...\n');
 rho = 1;
 max_iter = 200;
 structure_hat = find_structure_constrained_nuclear_norm(projections_tilde, ...
-    rotations_trace, rho, max_iter, 10, 10, 10);
+    rotations, rho, max_iter, 10, 10, 10);
 
-R_hat = block_diagonal_cameras(rotations_trace);
+R_hat = block_diagonal_cameras(rotations);
 S_hat = structure_to_matrix(structure_hat);
 
 fprintf('Reprojection error (structure only, nuclear) = %g\n', ...
@@ -127,6 +128,29 @@ structure_nuclear = structure_hat;
 %fprintf('Any key to continue\n');
 %pause;
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Dai 2012 solution for structure, but with regularization not constraint.
+%
+%fprintf('Regularized nuclear norm solution...\n');
+%
+%lambda = 1;
+%structure_hat = find_structure_nuclear_norm_regularized(projections_tilde, ...
+%    rotations_trace, lambda, 1, 200, 10, 10, 10);
+%
+%R_hat = block_diagonal_cameras(rotations_trace);
+%S_hat = structure_to_matrix(structure_hat);
+%
+%fprintf(...
+%    'Reprojection error (structure only, nuclear norm regularization) = %g\n', ...
+%    norm(W_tilde - R_hat * S_hat, 'fro') / norm(W_tilde, 'fro'));
+%fprintf('3D error (structure only, nuclear norm regularization) = %g\n', ...
+%    min_total_shape_error(structure_tilde, structure_hat));
+%
+%structure_nuclear_reg = structure_hat;
+%
+%%fprintf('Any key to continue\n');
+%%pause;
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Rank constraint by iterating Dai 2012 solution for structure
 
@@ -134,62 +158,37 @@ fprintf('Rank problem by sweeping lambda...\n');
 
 rho = 1;
 max_iter = 200;
-structure_hat = find_structure_nuclear_norm_sweep(projections_tilde, ...
-    rotations_trace, K, rho, max_iter, 10, 10, 10);
+[structure_hat, basis_hat, coeff_hat] = find_structure_nuclear_norm_sweep(...
+    projections_tilde, rotations, K, rho, max_iter, 10, 10, 10);
 
-R_hat = block_diagonal_cameras(rotations_trace);
+R_hat = block_diagonal_cameras(rotations);
 S_hat = structure_to_matrix(structure_hat);
 
-fprintf('Reprojection error (structure only, nuclear) = %g\n', ...
+fprintf('Reprojection error (structure only, sweep) = %g\n', ...
     norm(W_tilde - R_hat * S_hat, 'fro') / norm(W_tilde, 'fro'));
-fprintf('3D error (structure only, nuclear) = %g\n', ...
+fprintf('3D error (structure only, sweep) = %g\n', ...
     min_total_shape_error(structure_tilde, structure_hat));
 
 %fprintf('Any key to continue\n');
 %pause;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Dai 2012 solution for structure, but with regularization not constraint.
+% Nonlinear refinement.
 
-fprintf('Regularized nuclear norm solution...\n');
+[structure_hat, rotations_hat] = nrsfm_nonlinear(projections_tilde, ...
+    rotations, basis_hat, coeff_hat, 1000, 1e-4);
 
-lambda = 1;
-structure_hat = find_structure_nuclear_norm_regularized(projections_tilde, ...
-    rotations_trace, lambda, 1, 200, 10, 10, 10);
-
-R_hat = block_diagonal_cameras(rotations_trace);
+R_hat = block_diagonal_cameras(rotations_hat);
 S_hat = structure_to_matrix(structure_hat);
 
-fprintf(...
-    'Reprojection error (structure only, nuclear norm regularization) = %g\n', ...
+fprintf('Reprojection error (non-linear) = %g\n', ...
     norm(W_tilde - R_hat * S_hat, 'fro') / norm(W_tilde, 'fro'));
-fprintf('3D error (structure only, nuclear norm regularization) = %g\n', ...
+fprintf('3D error (non-linear) = %g\n', ...
     min_total_shape_error(structure_tilde, structure_hat));
 
-structure_nuclear_reg = structure_hat;
-
+keyboard;
 %fprintf('Any key to continue\n');
 %pause;
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Nonlinear refinement of constrained nuclear norm solution for S.
-
-%[Rs_refined_nuclear, structure_refined_nuclear] = nrsfm_nonlinear(...
-%    projections_tilde, rotations_trace, structure_nuclear, K, 1000, 1e-4);
-%
-%R_mat = block_diagonal_cameras(Rs_refined_nuclear);
-%% [3, P, F] -> [3, F, P] -> [3F, P]
-%S_mat = structure_refined_nuclear;
-%S_mat = permute(S_mat, [1, 3, 2]);
-%S_mat = reshape(S_mat, [3 * F, P]);
-%
-%fprintf('Reprojection error (refined nuclear) = %g\n', ...
-%    norm(W_tilde - R_mat * S_mat, 'fro') / norm(W_tilde, 'fro'));
-%fprintf('3D error (refined nuclear) = %g\n', ...
-%    min_total_shape_error(structure_tilde, structure_refined_nuclear));
-%
-%%fprintf('Any key to continue\n');
-%%pause;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Our solution for structure using the nullspace
