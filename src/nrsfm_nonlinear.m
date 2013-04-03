@@ -44,7 +44,7 @@ function [structure, rotations, basis, coeff] = nrsfm_nonlinear(projections, ...
   fprintf('Initial residual: %g\n', 1/2 * norm(W - R * S, 'fro') ^ 2);
 
   % Solve.
-  if exist('nrsfm_nonlinear_mex', 'file)
+  if exist('nrsfm_nonlinear_mex', 'file')
     [quaternions, basis, coeff] = nrsfm_nonlinear_mex(projections, ...
         quaternions, basis, coeff, max_iter, tol);
   else
