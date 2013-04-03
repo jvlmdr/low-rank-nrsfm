@@ -44,8 +44,23 @@ function [structure, rotations, basis, coeff] = nrsfm_nonlinear(projections, ...
   fprintf('Initial residual: %g\n', 1/2 * norm(W - R * S, 'fro') ^ 2);
 
   % Solve.
-  [quaternions, basis, coeff] = nrsfm_nonlinear_mex(projections, ...
-      quaternions, basis, coeff, max_iter, tol);
+  if exist('nrsfm_nonlinear_mex', 'file)
+    [quaternions, basis, coeff] = nrsfm_nonlinear_mex(projections, ...
+        quaternions, basis, coeff, max_iter, tol);
+  else
+    infile = [tempname(), '.nrsfm'];
+    outfile = [tempname(), '.nrsfm'];
+    save_nrsfm_mex(projections, quaternions, basis, coeff, infile);
+    command = sprintf(...
+      'LD_LIBRARY_PATH=.:/nwdata/val064/local/lib/ ./nrsfm-nonlinear %s %s', ...
+      infile, outfile);
+    fprintf([command, '\n']);
+    [s, m] = unix(command, '-echo');
+    if s ~= 0
+      error(m);
+    end
+    [quaternions, basis, coeff] = load_nrsfm_mex(outfile);
+  end
 
   structure = compose_structure(basis, coeff);
 

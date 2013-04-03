@@ -1,0 +1,12 @@
+package nrsfm;
+
+message Problem {
+  required int32 num_frames = 1;
+  required int32 num_points = 2;
+  required int32 num_bases = 3;
+
+  repeated double projections = 4;
+  repeated double quaternions = 5;
+  repeated double basis = 6;
+  repeated double coeff = 7;
+}

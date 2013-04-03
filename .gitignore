@@ -2,6 +2,11 @@
 .*.swp
 *.mat
 *.mexmaci64
+*.mexa64
+*.o
+*.so
+*.pb.cc
+*.pb.h
 data/
 output/
 visualize/
