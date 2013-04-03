@@ -87,6 +87,4 @@ function structure = find_structure_constrained_nuclear_norm(projections, ...
 
   % Use Z to get low rank (to numerical precision).
   structure = Z;
-
-  keyboard;
 end
