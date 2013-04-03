@@ -14,7 +14,7 @@
 % structure -- 3 x P x F
 
 function structure = find_structure_constrained_nuclear_norm(projections, ...
-    rotations, rho, max_iter, mu, tau_incr, tau_decr)
+    rotations, rho, max_iter, tol, tau, rho_max)
   % Introduce the auxiliary variable Z.
   %
   % arg min_{S, Z} nuclear_norm(Z)
@@ -63,22 +63,30 @@ function structure = find_structure_constrained_nuclear_norm(projections, ...
 
     norm_r = norm(r(:));
     norm_s = norm(s(:));
-
     fprintf('%6d: %8g %8g %8g\n', num_iter, rho, norm_r, norm_s);
 
-    if num_iter > 0 && num_iter < max_iter / 2
-      if norm_r ~= 0 && norm_s ~= 0
-        if norm_r > mu * norm_s
-          rho = rho * tau_incr;
-        elseif norm_s > mu * norm_r
-          rho = rho / tau_decr;
-        end
-      end
+    Y = rho * U;
+
+    p = numel(S);
+    n = numel(S);
+    eps_primal = sqrt(p) * 1e-6 + tol * max(norm(S(:)), norm(Z(:)));
+    eps_dual = sqrt(n) * 1e-6 + tol * norm(Y(:));
+
+    if norm_r < eps_primal
+      converged = true;
     end
 
+    if ~converged
+      if num_iter < max_iter && rho < rho_max
+        rho = rho * tau;
+      end
+    end
+    U = 1 / rho * Y;
     num_iter = num_iter + 1;
   end
 
   % Use Z to get low rank (to numerical precision).
   structure = Z;
+
+  keyboard;
 end
