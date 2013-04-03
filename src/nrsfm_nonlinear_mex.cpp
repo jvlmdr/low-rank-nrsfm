@@ -10,33 +10,6 @@
 using std::vector;
 using boost::scoped_array;
 
-class ProjectionResidual {
-  public:
-    // rotation -- Camera rotation as normalized quaternion, 4 vector
-    // point -- World point, 3 vector
-    template<class T>
-    bool operator()(const T* const q, const T* const x, T* residual) {
-      // Rotate point.
-      T p[3];
-      QuaternionRotatePoint(q, x, p);
-
-      // Compute residual.
-      for (int d = 0; d < 2; d += 1) {
-        residual[d] = w_[d] - x[d];
-      }
-
-      return true;
-    }
-
-    ProjectionResidual(double x, double y) : w_() {
-      w_[0] = x;
-      w_[1] = y;
-    }
-
-  private:
-    double w_[2];
-};
-
 class BasisFunction : public ceres::CostFunction {
   public:
     BasisFunction(int K) : K_(K) {
