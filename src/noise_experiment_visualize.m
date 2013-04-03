@@ -1,12 +1,8 @@
 num_sequences = length(scenes);
 num_noises = length(noise_stddevs);
 
-num_nrsfm_solvers = length(solvers.nrsfm_solvers);
-num_camera_solvers = length(solvers.camera_solvers);
-num_nrsfm_solvers_given_cameras = length(solvers.nrsfm_solvers_given_cameras);
-
-num_solvers = num_nrsfm_solvers + ...
-    num_camera_solvers * num_nrsfm_solvers_given_cameras;
+[names, ids] = nrsfm_solver_names(solvers);
+num_solvers = length(names);
 
 mean_errors = shiftdim(mean(shape_errors), 1);
 
@@ -36,8 +32,7 @@ for i = 1:num_noises
   title(sprintf('Noise level %g', noise_stddev));
   set(gca, 'XTick', 1:num_solvers);
 
-  [names, ids] = nrsfm_solver_names(solvers);
-  set(gca, 'XTickLabel', ids);
+  %set(gca, 'XTickLabel', ids);
 
 %  filename = sprintf('../figures/noise/%d-%g.eps', i, noise_stddev);
 %  print(filename, '-depsc2');
