@@ -9,6 +9,7 @@
 % Parameters:
 % projections -- 2 x P x F
 % rotations -- 2 x 3 x F
+% rho -- Can be []
 %
 % Results:
 % structure -- 3 x P x F
@@ -52,6 +53,12 @@ function structure = find_structure_constrained_nuclear_norm(projections, ...
     V = S + U;
     V = structure_to_matrix(V);
     V = k_reshape(V, 3);
+    % Set initial rho automatically if empty.
+    if isempty(rho)
+      d = svd(V);
+      rho = 1 / d(1);
+      fprintf('rho (automatic) = %g\n', rho);
+    end
     Z = singular_value_soft_threshold(V, 1 / rho);
     Z = k_unreshape(Z, 3);
     Z = structure_from_matrix(Z);
@@ -76,8 +83,8 @@ function structure = find_structure_constrained_nuclear_norm(projections, ...
       converged = true;
     end
 
-    if ~converged
-      if num_iter < max_iter && rho < rho_max
+    if ~converged && num_iter < max_iter
+      if rho < rho_max
         rho = rho * tau;
       end
     end

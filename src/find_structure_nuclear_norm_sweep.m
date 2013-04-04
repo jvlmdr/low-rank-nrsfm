@@ -17,7 +17,7 @@
 % coeff -- K x F
 
 function [structure, basis, coeff] = find_structure_nuclear_norm_sweep(...
-    projections, rotations, K, rho, max_iter, mu, tau_incr, tau_decr)
+    projections, rotations, K, rho, max_iter, tol, tau, rho_max)
   F = size(projections, 3);
   P = size(projections, 2);
 
@@ -30,7 +30,7 @@ function [structure, basis, coeff] = find_structure_nuclear_norm_sweep(...
 
   for i = 1:num_lambdas
     structure = find_structure_nuclear_norm_regularized(projections, ...
-        rotations, lambdas(i), rho, max_iter, mu, tau_incr, tau_decr);
+        rotations, lambdas(i), rho, max_iter, tol, tau, rho_max);
     [basis, coeff] = factorize_structure(structure, K);
     structure = compose_structure(basis, coeff);
 

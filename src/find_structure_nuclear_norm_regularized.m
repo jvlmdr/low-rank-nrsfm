@@ -12,11 +12,15 @@
 % structure -- 3 x P x F
 
 function structure = find_structure_nuclear_norm_regularized(projections, ...
-    rotations, lambda, rho, max_iter, mu, tau_incr, tau_decr)
+    rotations, lambda, rho, max_iter, tol, tau, rho_max)
   % Introduce the auxiliary variable Z.
   %
   % arg min_{S, Z} 1/2 sum_ti ||w_ti - R_t s_ti||^2 + lambda nuclear_norm(Z)
   % s.t.  S = Z
+
+  if isempty(rho)
+    rho = 0;
+  end
 
   P = size(projections, 2);
   F = size(projections, 3);
@@ -39,18 +43,22 @@ function structure = find_structure_nuclear_norm_regularized(projections, ...
       R_t = rotations(:, :, t);
       W_t = projections(:, :, t);
       V_t = V(:, :, t);
-      S_t = (R_t' * R_t + rho * eye(3)) \ (R_t' * W_t + rho * V_t);
+      S_t = pinv(R_t' * R_t + rho * eye(3)) * (R_t' * W_t + rho * V_t);
       S(:, :, t) = S_t;
     end
 
     % Z subproblem. Singular value soft thresholding.
     % arg min_{Z} nuclear_norm(Z) + rho/2 ||S - Z + U||_F
     V = S + U;
-    V = structure_to_matrix(V);
-    V = k_reshape(V, 3);
+    V = k_reshape(structure_to_matrix(V), 3);
+    if rho == 0
+      d = svd(V);
+      % lambda / rho == d(1)
+      rho = lambda / d(1);
+      fprintf('rho (automatic) = %g\n', rho);
+    end
     Z = singular_value_soft_threshold(V, lambda / rho);
-    Z = k_unreshape(Z, 3);
-    Z = structure_from_matrix(Z);
+    Z = structure_from_matrix(k_unreshape(Z, 3));
 
     % Update multipliers.
     r = S - Z;
@@ -59,19 +67,25 @@ function structure = find_structure_nuclear_norm_regularized(projections, ...
 
     norm_r = norm(r(:));
     norm_s = norm(s(:));
+    fprintf('%6d: %8g %8g %8g\n', num_iter, rho, norm_r, norm_s);
 
-    fprintf('%12d %12g %12g %12g\n', num_iter, rho, norm_r, norm_s);
+    Y = rho * U;
 
-    if num_iter > 0 && num_iter < max_iter / 2
-      if norm_r ~= 0 && norm_s ~= 0
-        if norm_r > mu * norm_s
-          rho = rho * tau_incr;
-        elseif norm_s > mu * norm_r
-          rho = rho / tau_decr;
-        end
-      end
+    p = numel(S);
+    n = numel(S);
+    eps_primal = sqrt(p) * 1e-6 + tol * max(norm(S(:)), norm(Z(:)));
+    eps_dual = sqrt(n) * 1e-6 + tol * norm(Y(:));
+
+    if norm_r < eps_primal
+      converged = true;
     end
 
+    if ~converged && num_iter < max_iter
+      if rho < rho_max
+        rho = rho * tau;
+      end
+    end
+    U = 1 / rho * Y;
     num_iter = num_iter + 1;
   end
 

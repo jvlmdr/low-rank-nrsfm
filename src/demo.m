@@ -2,7 +2,7 @@ close all;
 rng('default');
 
 K = 5;
-scale_stddev = 1; %sqrt(2);
+scale_stddev = sqrt(2);
 omega_stddev = 5 / 180 * pi;
 use_akhter_data = input('Use data of Akhter? (true, false) ');
 
@@ -98,6 +98,18 @@ S = structure_to_matrix(scaled_structure);
 rotations_trace = find_rotations_trace(projections, K, 1e6);
 %rotations_trace = find_rotations_dai(M_hat);
 
+% Rotate ground truth structure to match estimated cameras.
+structure_rel = zeros(3, P, F);
+for t = 1:F
+  U = rotations_trace(:, :, t);
+  U = [U; cross(U(1, :), U(2, :))];
+  V = rotations(:, :, t);
+  V = [V; cross(V(1, :), V(2, :))];
+  % V S = U X = U (U' V S)
+  structure_rel(:, :, t) = U' * V * scaled_structure(:, :, t);
+end
+S_rel = structure_to_matrix(structure_rel);
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Xiao 2004
 
@@ -122,25 +134,20 @@ fprintf('Constrained nuclear norm solution...\n');
 rho = 1e-6;
 max_iter = 200;
 structure_hat = find_structure_constrained_nuclear_norm(projections_tilde, ...
-    rotations_trace, 1e-6, 1000, 1e-6, 1.1, 1e6);
+    rotations_trace, [], 400, 1e-6, 1.1, 1e6);
 
 R_hat = block_diagonal_cameras(rotations_trace);
 structure_planar = structure_from_matrix(pinv(full(R_hat)) * W_tilde);
 
-y = zeros(F, 1);
-for t = 1:F
-  y(t) = nonplanarity(structure_planar(:, :, t));
-end
-
 fprintf('nuclear_norm(ground_truth) = %g\n', ...
-    nuclear_norm(k_reshape(structure_to_matrix(structure_tilde), 3)));
+    nuclear_norm(k_reshape(structure_to_matrix(structure_rel), 3)));
 fprintf('nuclear_norm(planar) = %g\n', ...
     nuclear_norm(k_reshape(structure_to_matrix(structure_planar), 3)));
 fprintf('nuclear_norm(solution) = %g\n', ...
     nuclear_norm(k_reshape(structure_to_matrix(structure_hat), 3)));
 
 fprintf('projection_error(ground_truth) = %g\n', ...
-    norm(W_tilde - R_hat * S, 'fro') / norm(W_tilde, 'fro'));
+    norm(W_tilde - R_hat * S_rel, 'fro') / norm(W_tilde, 'fro'));
 
 S_planar = structure_to_matrix(structure_planar);
 
@@ -164,25 +171,69 @@ keyboard;
 %pause;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Dai 2012 solution for structure, but with regularization not constraint.
+
+fprintf('Regularized nuclear norm solution...\n');
+
+lambda = 1e6;
+structure_hat = find_structure_nuclear_norm_regularized(projections_tilde, ...
+    rotations_trace, lambda, [], 400, 1e-6, 1.1, 1e6);
+
+R_hat = block_diagonal_cameras(rotations_trace);
+S_hat = structure_to_matrix(structure_hat);
+
+fprintf('projection_error(solution) = %g\n', ...
+    norm(W_tilde - R_hat * S_hat, 'fro') / norm(W_tilde, 'fro'));
+fprintf('shape_error(solution) = %g\n', ...
+    min_total_shape_error(structure_tilde, structure_hat));
+
+structure_nuclear_reg = structure_hat;
+
+keyboard;
+%fprintf('Any key to continue\n');
+%pause;
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Rank constraint by iterating Dai 2012 solution for structure
+
+fprintf('Rank problem by sweeping lambda...\n');
+
+[structure_hat, basis_hat, coeff_hat] = find_structure_nuclear_norm_sweep(...
+    projections_tilde, rotations_trace, K, [], 200, 1e-6, 1.1, 1e6);
+
+R_hat = block_diagonal_cameras(rotations_trace);
+S_hat = structure_to_matrix(structure_hat);
+
+fprintf('projection_error(solution) = %g\n', ...
+    norm(W_tilde - R_hat * S_hat, 'fro') / norm(W_tilde, 'fro'));
+fprintf('shape_error(solution) = %g\n', ...
+    min_total_shape_error(structure_tilde, structure_hat));
+
+return;
+%fprintf('Any key to continue\n');
+%pause;
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Nonlinear refinement.
 
 for k = 1:5
-  [basis, coeff] = factorize_structure(scaled_structure, k);
+  % Initialize with ground truth structure.
+  R_hat = block_diagonal_cameras(rotations_trace);
+  [basis, coeff] = factorize_structure(structure_rel, k);
   structure_low_rank = compose_structure(basis, coeff);
-
   S_low_rank = structure_to_matrix(structure_low_rank);
 
   [structure_hat, rotations_hat] = nrsfm_nonlinear(projections_tilde, ...
       rotations_trace, basis, coeff, 200, 1e-4);
 
-  R_hat = block_diagonal_cameras(rotations_hat);
-  S_hat = structure_to_matrix(structure_hat);
-
   fprintf('k = %d\n', k);
   fprintf('projection_error(ground_truth) = %g\n', ...
-      norm(W_tilde - R * S, 'fro') / norm(W_tilde, 'fro'));
+      norm(W_tilde - R_hat * S_rel, 'fro') / norm(W_tilde, 'fro'));
   fprintf('projection_error(low_rank) = %g\n', ...
       norm(W_tilde - R_hat * S_low_rank, 'fro') / norm(W_tilde, 'fro'));
+
+  R_hat = block_diagonal_cameras(rotations_hat);
+  S_hat = structure_to_matrix(structure_hat);
   fprintf('projection_error(non-linear) = %g\n', ...
       norm(W_tilde - R_hat * S_hat, 'fro') / norm(W_tilde, 'fro'));
   fprintf('shape_error(non-linear) = %g\n', ...
@@ -192,51 +243,6 @@ for k = 1:5
   %fprintf('Any key to continue\n');
   %pause;
 end
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% Dai 2012 solution for structure, but with regularization not constraint.
-%
-%fprintf('Regularized nuclear norm solution...\n');
-%
-%lambda = 1;
-%structure_hat = find_structure_nuclear_norm_regularized(projections_tilde, ...
-%    rotations, lambda, 1, 200, 10, 10, 10);
-%
-%R_hat = block_diagonal_cameras(rotations_trace);
-%S_hat = structure_to_matrix(structure_hat);
-%
-%fprintf(...
-%    'Reprojection error (structure only, nuclear norm regularization) = %g\n', ...
-%    norm(W_tilde - R_hat * S_hat, 'fro') / norm(W_tilde, 'fro'));
-%fprintf('3D error (structure only, nuclear norm regularization) = %g\n', ...
-%    min_total_shape_error(structure_tilde, structure_hat));
-%
-%structure_nuclear_reg = structure_hat;
-%
-%%fprintf('Any key to continue\n');
-%%pause;
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Rank constraint by iterating Dai 2012 solution for structure
-
-fprintf('Rank problem by sweeping lambda...\n');
-
-rho = 1;
-max_iter = 200;
-[structure_hat, basis_hat, coeff_hat] = find_structure_nuclear_norm_sweep(...
-    projections_tilde, rotations_trace, K, rho, max_iter, 10, 10, 10);
-
-R_hat = block_diagonal_cameras(rotations_trace);
-S_hat = structure_to_matrix(structure_hat);
-
-fprintf('Reprojection error (structure only, sweep) = %g\n', ...
-    norm(W_tilde - R_hat * S_hat, 'fro') / norm(W_tilde, 'fro'));
-fprintf('3D error (structure only, sweep) = %g\n', ...
-    min_total_shape_error(structure_tilde, structure_hat));
-
-return;
-%fprintf('Any key to continue\n');
-%pause;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Nonlinear refinement.
