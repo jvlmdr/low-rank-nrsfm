@@ -2,80 +2,58 @@ function solutions = noise_experiment_trial(solvers, scene)
   projections = scene.projections;
   projections = bsxfun(@minus, projections, mean(projections, 2));
 
-  % Solve for cameras using all methods.
-  cameras = arrayfun(@(solver) find_cameras(solver, projections), ...
-      solvers.camera_solvers);
+  num_full_solvers = length(solvers.nrsfm_solvers);
+  num_camera_solvers = length(solvers.camera_solvers);
+  num_solvers_given_cameras = length(solvers.nrsfm_solvers_given_cameras);
+  num_structure_solvers = length(solvers.full_init_solvers);
+  num_refiners = length(solvers.nrsfm_solvers_full_init);
 
-  % Solve different methods of full initialization given cameras.
-  full_inits = arrayfun(...
-      @(camera) { arrayfun(...
-        @(solver) find_full_init(solver, projections, camera), ...
-        solvers.full_init_solvers) }, ...
-      cameras);
-  full_inits = cell2mat(full_inits);
+  %num_solvers = num_full_solvers + ...
+  %    num_camera_solvers * (num_solvers_given_cameras + ...
+  %      num_structure_solvers * num_refiners);
 
-  % Append (solvers with initialization x methods of initialization) to list.
-  nrsfm_solvers_given_cameras = arrayfun(...
-      @(camera) { arrayfun(...
-        @(solver) nrsfm_solver_given_camera(solver, camera), ...
-        solvers.nrsfm_solvers_given_cameras) }, ...
-      cameras);
-  nrsfm_solvers_given_cameras = cell2mat(nrsfm_solvers_given_cameras);
+  solutions = [];
 
-  % Append (solvers with initialization x methods of initialization) to list.
-  nrsfm_solvers_full_init = arrayfun(...
-      @(full_init) { arrayfun(...
-        @(solver) nrsfm_solver_full_init(solver, full_init), ...
-        solvers.nrsfm_solvers_full_init) }, ...
-      full_inits);
-  nrsfm_solvers_full_init = cell2mat(nrsfm_solvers_full_init);
+  % First solve all methods which don't require anything.
+  for i = 1:num_full_solvers
+    nrsfm_solver = solvers.nrsfm_solvers(i);
+    fprintf('\nSolving ''%s''\n', nrsfm_solver.name);
+    [structure, cameras] = nrsfm_solver.solve(projections);
+    solution = struct('structure', structure, 'rotations', cameras);
+    solutions = [solutions, solution];
+  end
 
-  % Concatenate.
-  nrsfm_solvers = [solvers.nrsfm_solvers, nrsfm_solvers_given_cameras, ...
-      nrsfm_solvers_full_init];
+  for i = 1:num_camera_solvers
+    camera_solver = solvers.camera_solvers(i);
+    fprintf('\nSolving ''%s''\n', camera_solver.name);
+    cameras_init = camera_solver.solve(projections);
 
-  % Solve!
-  solutions = arrayfun(@(solver) nrsfm(solver, projections), nrsfm_solvers);
-end
+    for j = 1:num_solvers_given_cameras
+      nrsfm_solver = solvers.nrsfm_solvers_given_cameras(j);
+      fprintf('\nSolving ''%s''\n', nrsfm_solver.name);
+      fprintf('Cameras initialized by ''%s''\n', camera_solver.name);
+      [structure, cameras] = nrsfm_solver.solve(projections, cameras_init);
+      solution = struct('structure', structure, 'rotations', cameras);
+      solutions = [solutions, solution];
+    end
 
-function solution = find_cameras(solver, projections)
-  fprintf('Solving ''%s''...\n', solver.name);
-  rotations = solver.solve(projections);
-  solution = struct('rotations', rotations, 'solver', solver);
-end
+    for j = 1:num_structure_solvers
+      structure_solver = solvers.full_init_solvers(j);
+      fprintf('\nSolving ''%s''\n', structure_solver.name);
+      fprintf('Cameras initialized by ''%s''\n', camera_solver.name);
+      [structure_init, cameras_reinit, basis_init, coeff_init] = ...
+          structure_solver.solve(projections, cameras_init);
 
-function solution = find_full_init(solver, projections, camera)
-  fprintf('Solving ''%s''...\n', solver.name);
-  rotations = camera.rotations;
-  [structure, rotations, basis, coeff] = solver.solve(projections, rotations);
-  solution = struct('rotations', rotations, 'structure', structure, ...
-      'basis', basis, 'coeff', coeff, 'solver', solver);
-end
-
-function solver = nrsfm_solver_given_camera(solver, camera)
-  rotations = camera.rotations;
-  solve = @(projections) solver.solve(projections, rotations);
-  name = [solver.name, ' [', camera.solver.name, ']'];
-  id = [solver.id, '-', camera.solver.id];
-  solver = make_solver(solve, name, id);
-end
-
-function solver = nrsfm_solver_full_init(solver, full_init)
-  structure = full_init.structure;
-  rotations = full_init.rotations;
-  basis = full_init.basis;
-  coeff = full_init.coeff;
-
-  solve = @(projections) solver.solve(projections, structure, rotations, ...
-      basis, coeff);
-  name = [solver.name, ' [', full_init.solver.name, ']'];
-  id = [solver.id, '-', full_init.solver.id];
-
-  solver = make_solver(solve, name, id);
-end
-
-function solution = nrsfm(solver, projections)
-  fprintf('Solving ''%s''...\n', solver.name);
-  [structure, rotations] = solver.solve(projections);
-  solution = struct('structure', structure, 'rotations', rotations);
+      for k = 1:num_refiners
+        nrsfm_solver = solvers.nrsfm_solvers_full_init(k);
+        fprintf('\nSolving ''%s''\n', nrsfm_solver.name);
+        fprintf('Cameras initialized by ''%s''\n', camera_solver.name);
+        fprintf('Structure initialized by ''%s''\n', structure_solver.name);
+        [structure, cameras] = nrsfm_solver.solve(projections, ...
+            structure_init, cameras_reinit, basis_init, coeff_init);
+        solution = struct('structure', structure, 'rotations', cameras);
+        solutions = [solutions, solution];
+      end
+    end
+  end
 end

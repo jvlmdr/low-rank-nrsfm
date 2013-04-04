@@ -1,38 +1,43 @@
 function [names, ids] = nrsfm_solver_names(solvers)
-  solvers_given_cameras = cell2mat(arrayfun(...
-      @(camera_solver) { arrayfun(...
-        @(nrsfm_solver) solver_given_cameras(camera_solver, nrsfm_solver), ...
-        solvers.nrsfm_solvers_given_cameras) }, ...
-      solvers.camera_solvers));
+  num_full_solvers = length(solvers.nrsfm_solvers);
+  num_camera_solvers = length(solvers.camera_solvers);
+  num_solvers_given_cameras = length(solvers.nrsfm_solvers_given_cameras);
+  num_structure_solvers = length(solvers.full_init_solvers);
+  num_refiners = length(solvers.nrsfm_solvers_full_init);
 
-  solvers_given_full_init = cell2mat(arrayfun(...
-      @(camera_solver) { cell2mat(arrayfun(...
-        @(full_init_solver) { arrayfun(...
-          @(nrsfm_solver) solver_given_full_init(camera_solver, ...
-              full_init_solver, nrsfm_solver), ...
-          solvers.nrsfm_solvers_full_init) }, ...
-        solvers.full_init_solvers)) }, ...
-      solvers.camera_solvers));
+  names = {};
+  ids = {};
 
-  names = [{solvers.nrsfm_solvers.name}, {solvers_given_cameras.name}, ...
-      {solvers_given_full_init.name}];
-  ids = [{solvers.nrsfm_solvers.id}, {solvers_given_cameras.id}, ...
-      {solvers_given_full_init.id}];
-end
+  % First solve all methods which don't require anything.
+  for i = 1:num_full_solvers
+    nrsfm_solver = solvers.nrsfm_solvers(i);
+    names = [names, {nrsfm_solver.name}];
+    ids = [ids, {nrsfm_solver.id}];
+  end
 
-function solver = solver_given_cameras(camera_solver, nrsfm_solver)
-  name = sprintf('%s [%s]', nrsfm_solver.name, camera_solver.name);
-  id = sprintf('%s-%s', nrsfm_solver.id, camera_solver.id);
-  % Make a solver with no function.
-  solver = make_solver([], name, id);
-end
+  for i = 1:num_camera_solvers
+    camera_solver = solvers.camera_solvers(i);
 
-function solver = solver_given_full_init(camera_solver, full_init_solver, ...
-    nrsfm_solver)
-  name = sprintf('%s [%s, %s]', nrsfm_solver.name, camera_solver.name, ...
-      full_init_solver.name);
-  id = sprintf('%s-%s-%s', nrsfm_solver.id, camera_solver.id, ...
-      full_init_solver.id);
-  % Make a solver with no function.
-  solver = make_solver([], name, id);
+    for j = 1:num_solvers_given_cameras
+      nrsfm_solver = solvers.nrsfm_solvers_given_cameras(j);
+      name = sprintf('%s [%s]', nrsfm_solver.name, camera_solver.name);
+      id = sprintf('%s-%s', nrsfm_solver.id, camera_solver.id);
+      names = [names, {name}];
+      ids = [ids, {id}];
+    end
+
+    for j = 1:num_structure_solvers
+      structure_solver = solvers.full_init_solvers(j);
+
+      for k = 1:num_refiners
+        nrsfm_solver = solvers.nrsfm_solvers_full_init(k);
+        name = sprintf('%s [%s] [%s]', nrsfm_solver.name, ...
+            structure_solver.id, camera_solver.name);
+        id = sprintf('%s-%s-%s', nrsfm_solver.id, structure_solver.id, ...
+            camera_solver.id);
+        names = [names, {name}];
+        ids = [ids, {id}];
+      end
+    end
+  end
 end
