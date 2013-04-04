@@ -32,7 +32,7 @@ function [names, ids] = nrsfm_solver_names(solvers)
       for k = 1:num_refiners
         nrsfm_solver = solvers.nrsfm_solvers_full_init(k);
         name = sprintf('%s [%s] [%s]', nrsfm_solver.name, ...
-            structure_solver.id, camera_solver.name);
+            structure_solver.name, camera_solver.name);
         id = sprintf('%s-%s-%s', nrsfm_solver.id, structure_solver.id, ...
             camera_solver.id);
         names = [names, {name}];
