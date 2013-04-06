@@ -1,5 +1,5 @@
 num_frames = 256;
-num_sequences = 16;
+num_sequences = 32;
 downsample = 8;
 
 omega_stddev = 5 * pi / 180;

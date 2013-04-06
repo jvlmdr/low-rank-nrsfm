@@ -70,7 +70,7 @@ function structure = find_structure_constrained_nuclear_norm(projections, ...
 
     norm_r = norm(r(:));
     norm_s = norm(s(:));
-    fprintf('%6d: %8g %8g %8g\n', num_iter, rho, norm_r, norm_s);
+    fprintf('%6d: %11.3g %11.3g %11.3g\n', num_iter, rho, norm_r, norm_s);
 
     Y = rho * U;
 

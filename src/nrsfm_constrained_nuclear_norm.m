@@ -1,6 +1,9 @@
 % Solves
 %   arg min_{R, S} nuclear_norm(S)  s.t.  w_ti = R_t s_ti,  R_t R_t' = I
 %
+% [structure, rotations] = nrsfm_constrained_nuclear_norm(projections,
+%     structure, rotations, rho1, rho2, tau, rho_max, tol, max_iter)
+%
 % Parameters:
 % projections -- 2 x P x F
 % structure -- 3 x P x F
@@ -11,8 +14,7 @@
 % rotations -- 2 x 3 x F
 
 function [structure, rotations] = nrsfm_constrained_nuclear_norm(...
-    projections, structure, rotations, rho1, rho2, max_iter, mu, tau_incr, ...
-    tau_decr)
+    projections, structure, rotations, rho1, rho2, tau, rho_max, tol, max_iter)
   % Introduce the auxiliary variables X and Z.
   %
   % arg min_{R, S, X, Z} nuclear_norm(S)
@@ -36,24 +38,6 @@ function [structure, rotations] = nrsfm_constrained_nuclear_norm(...
     prev_X = X;
     prev_Z = Z;
 
-    % S subproblem. Singular value soft thresholding.
-    V = X - U1;
-    V = structure_to_matrix(V);
-    V = k_reshape(V, 3);
-    S = singular_value_soft_threshold(V, 1 / rho1);
-    S = k_unreshape(S, 3);
-    S = structure_from_matrix(S);
-
-    % X subproblem. Nearest point on subspace.
-    V = S + U1;
-    for t = 1:F
-      Z_t = Z(:, :, t);
-      W_t = projections(:, :, t);
-      V_t = V(:, :, t);
-      X_t = V_t + pinv(Z_t) * (W_t - Z_t * V_t);
-      X(:, :, t) = X_t;
-    end
-
     % R subproblem. Procrustes (nearest orthonormal matrix).
     V = Z - U2;
     for t = 1:F
@@ -68,6 +52,24 @@ function [structure, rotations] = nrsfm_constrained_nuclear_norm(...
       Z(:, :, t) = W_t / X(:, :, t);
     end
 
+    % X subproblem. Nearest point on subspace.
+    V = S + U1;
+    for t = 1:F
+      Z_t = Z(:, :, t);
+      W_t = projections(:, :, t);
+      V_t = V(:, :, t);
+      X_t = V_t + pinv(Z_t) * (W_t - Z_t * V_t);
+      X(:, :, t) = X_t;
+    end
+
+    % S subproblem. Singular value soft thresholding.
+    V = X - U1;
+    V = structure_to_matrix(V);
+    V = k_reshape(V, 3);
+    S = singular_value_soft_threshold(V, 1 / rho1);
+    S = k_unreshape(S, 3);
+    S = structure_from_matrix(S);
+
     % Update multipliers and residuals.
     r1 = S - X;
     r2 = R - Z;
@@ -81,28 +83,41 @@ function [structure, rotations] = nrsfm_constrained_nuclear_norm(...
     norm_s1 = norm(s1(:));
     norm_s2 = norm(s2(:));
 
-    fprintf('%12d %12g %12g %12g %12g %12g %12g\n', num_iter, rho1, norm_r1, ...
-        norm_s1, rho2, norm_r2, norm_s2);
+    fprintf('%6d %11.3g %11.3g %11.3g %11.3g %11.3g %11.3g\n', num_iter, ...
+        rho1, norm_r1, norm_s1, rho2, norm_r2, norm_s2);
 
-    % Only consider changing rho in first half of iterations.
-    if num_iter > 0 && num_iter < max_iter / 2
-      if norm_r1 ~= 0 && norm_s1 ~= 0
-        if norm_r1 > mu * norm_s1
-          rho1 = rho1 * tau_incr;
-        elseif norm_s1 > mu * norm_r1
-          rho1 = rho1 / tau_decr;
+    Y1 = rho1 * U1;
+    Y2 = rho2 * U2;
+
+    eps_primal1 = sqrt(numel(S)) * 1e-6 + tol * max(norm(S(:)), norm(X(:)));
+    eps_dual1 = sqrt(numel(S)) * 1e-6 + tol * norm(Y1(:));
+
+    eps_primal2 = sqrt(numel(R)) * 1e-6 + tol * max(norm(R(:)), norm(Z(:)));
+    eps_dual2 = sqrt(numel(R)) * 1e-6 + tol * norm(Y2(:));
+
+    if norm_r1 < eps_primal1 && norm_r2 < eps_primal2
+      converged = true;
+    end
+
+    if ~converged && num_iter < max_iter
+      if rho1 < rho_max && rho2 < rho_max
+        if norm_r1 < norm_r2
+          rho2 = rho2 * tau;
+        else
+          rho1 = rho1 * tau;
         end
-      end
-
-      if norm_r2 ~= 0 && norm_s2 ~= 0
-        if norm_r2 > mu * norm_s2
-          rho2 = rho2 * tau_incr;
-        elseif norm_s2 > mu * norm_r2
-          rho2 = rho2 / tau_decr;
+      else
+        % At most one of { rho1, rho2 } can be increased.
+        if rho1 < rho_max
+          rho1 = rho1 * tau;
+        elseif rho2 < rho_max
+          rho2 = rho2 * tau;
         end
       end
     end
 
+    U1 = 1 / rho1 * Y1;
+    U2 = 1 / rho2 * Y2;
     num_iter = num_iter + 1;
   end
 
