@@ -79,7 +79,7 @@ void checkDimensions(const mxArray* projections,
 
 void mexFunction(int nlhs, mxArray** plhs, int nrhs, const mxArray** prhs) {
   const int NARGIN = 6;
-  const int NARGOUT = 3;
+  const int NARGOUT = 2;
 
   if (nrhs < NARGIN) {
     mexErrMsgTxt("Not enough input arguments");
@@ -95,26 +95,25 @@ void mexFunction(int nlhs, mxArray** plhs, int nrhs, const mxArray** prhs) {
   }
 
   const mxArray* projections = prhs[0];
-  const mxArray* cameras_init = prhs[1];
+  const mxArray* cameras = prhs[1];
   const mxArray* bases_init = prhs[2];
   const mxArray* coeffs_init = prhs[3];
   int max_iter = mxGetScalar(prhs[4]);
   double tol = mxGetScalar(prhs[5]);
 
-  checkDimensions(projections, cameras_init, bases_init, coeffs_init);
+  checkDimensions(projections, cameras, bases_init, coeffs_init);
 
   int F = mxGetDimensions(projections)[2];
   int P = mxGetDimensions(projections)[1];
   int K = mxGetDimensions(bases_init)[1];
 
-  mxArray* cameras = plhs[0] = mxDuplicateArray(cameras_init);
-  mxArray* bases = plhs[1] = mxDuplicateArray(bases_init);
-  mxArray* coeffs = plhs[2] = mxDuplicateArray(coeffs_init);
+  mxArray* bases = plhs[0] = mxDuplicateArray(bases_init);
+  mxArray* coeffs = plhs[1] = mxDuplicateArray(coeffs_init);
 
   const double* W = mxGetPr(projections);
-  double* Q = mxGetPr(cameras);
+  const double* Q = mxGetPr(cameras);
   double* B = mxGetPr(bases);
   double* C = mxGetPr(coeffs);
 
-  nrsfm(W, Q, B, C, F, P, K, max_iter, tol, true, false);
+  findStructure(W, Q, B, C, F, P, K, max_iter, tol, true, false);
 }
