@@ -13,9 +13,8 @@ function rotations = find_cameras(projections, structure)
     W_t = projections(:, :, t);
     S_t = structure(:, :, t);
 
-    % minimize || S_t' Q - W_t' || s.t. Q' Q = I
-    Q = procrustes(S_t', W_t');
-
-    rotations(:, :, t) = Q';
+    Q = W_t / S_t;
+    Q = nearest_scaled_rotation_matrix(Q);
+    rotations(:, :, t) = Q(1:2, :);
   end
 end

@@ -14,7 +14,7 @@
 
 function structure = find_structure_nuclear_norm_regularized(projections, ...
     structure, rotations, lambda, rho, tau, rho_max, primal_tol, dual_tol, ...
-    max_iter)
+    max_iter, verbose)
   % Introduce the auxiliary variable X.
   %
   % arg min_{S, X} 1/2 sum_ti ||w_ti - R_t s_ti||^2 + lambda nuclear_norm(X)
@@ -63,7 +63,9 @@ function structure = find_structure_nuclear_norm_regularized(projections, ...
       d = svd(V);
       % lambda / rho == d(1)
       rho = lambda / d(1);
-      fprintf('rho (automatic) = %g\n', rho);
+      if verbose
+        fprintf('rho (automatic) = %g\n', rho);
+      end
     end
     X = singular_value_soft_threshold(V, lambda / rho);
     X = structure_from_matrix(k_unreshape(X, 3));
@@ -81,9 +83,11 @@ function structure = find_structure_nuclear_norm_regularized(projections, ...
     delta_x = norm(S(:) - prev_S(:)) / norm(prev_S(:));
     delta_z = norm(X(:) - prev_X(:)) / norm(prev_X(:));
     delta_u = norm(U(:) - prev_U(:)) / norm(prev_U(:));
-    fprintf(...
-        '%6d:  rho:% .2e  r/x:% .2e  s/y:% .2e  dx:% .2e  dz:% .2e  du:% .2e\n', ...
-        num_iter, rho, norm_r_rel, norm_s_rel, delta_x, delta_z, delta_u);
+    if verbose
+      fprintf(...
+          '%6d:  rho:% .2e  r/x:% .2e  s/y:% .2e  dx:% .2e  dz:% .2e  du:% .2e\n', ...
+          num_iter, rho, norm_r_rel, norm_s_rel, delta_x, delta_z, delta_u);
+    end
 
     eps_primal = 1e-6 * sqrt(numel(S)) + ...
         primal_tol * max(norm(S(:)), norm(X(:)));
