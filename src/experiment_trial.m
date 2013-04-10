@@ -1,4 +1,4 @@
-function solutions = noise_experiment_trial(solvers, scene)
+function solutions = experiment_trial(solvers, scene)
   projections = scene.projections;
   projections = bsxfun(@minus, projections, mean(projections, 2));
 

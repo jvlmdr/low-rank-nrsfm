@@ -183,7 +183,7 @@ end
 save('noise-experiment-setup', 'solvers', 'scenes', 'noisy_scenes', ...
     'noise_stddevs', 'omega_stddev', 'scale_stddev');
 
-trial = @(scene) { noise_experiment_trial(solvers, scene) };
+trial = @(scene) { experiment_trial(solvers, scene) };
 
 if exist('pararrayfun', 'file')
   config = struct('h_cpu', '0:59:00', 'virtual_free', '1024M', ...

@@ -117,7 +117,7 @@ save('inexact-experiment-setup', 'solvers', 'scenes', 'omega_stddev', 'scale_std
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-trial = @(scene) { noise_experiment_trial(solvers, scene) };
+trial = @(scene) { experiment_trial(solvers, scene) };
 
 if exist('pararrayfun', 'file')
   config = struct('h_cpu', '12:00:00', 'virtual_free', '1024M', ...
