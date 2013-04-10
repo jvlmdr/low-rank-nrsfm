@@ -134,11 +134,16 @@ demo_setup;
 
 fprintf('Solving rigid SfM\n');
 find_rotations_rigid(projections);
-%cameras = find_rotations_rigid(projections);
+
+fprintf('Solving cameras by Dai et al.''s method\n');
+cameras = find_rotations_dai(projections, K);
+
+structure = find_structure_dai(projections, cameras, K);
 
 % Estimate cameras.
+fprintf('Solving cameras by our method\n');
 cameras = find_rotations_trace(projections, K);
-%cameras = find_rotations_dai(projections, K, 1e6);
+
 % Rotate "ground truth" structure into the reference frame of these cameras.
 structure = zeros(3, P, F);
 for t = 1:F
