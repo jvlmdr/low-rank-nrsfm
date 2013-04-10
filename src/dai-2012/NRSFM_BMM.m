@@ -81,12 +81,50 @@ end
 %--------------------------------------------------------------------------
 %Obtain the initial factorization result
 PI_Hat = U(:,1:3*K)*sqrt(D(1:3*K,1:3*K));
-B_Hat = diag(sqrt(diag(D(1:3*K, 1:3*K)))) * V(:, 1:3*K)';
 
-% Find corrective transform.
-%G = find_corrective_matrix_dai(PI_Hat);
-G = find_corrective_matrix_admm(PI_Hat);
-%G = find_corrective_matrix_admm_nullspace(B_Hat, G);
+%Solve all the G_k or Q_k
+A = zeros(2*nPose,(3*K)*(3*K));
+A_Hat = zeros(2*nPose,(3*K)*(3*K+1)/2);
+
+%Using the rotation constraint only    
+%For each frame, there are two constraints
+for f=1:nPose
+    PI_Hat_f = PI_Hat(2*f-1:2*f,:);
+    %Here we use the relationship that vec(ABA^T) = (A\odotA)vec(B)
+    AA = kron(PI_Hat_f,PI_Hat_f);
+        
+    A(2*f-1,:) = AA(1,:) - AA(4,:);
+    A(2*f-0,:) = AA(2,:);
+        
+    count = 0;
+    for i=1:3*K
+        for j=i:3*K
+            count = count+1;
+            if(i==j)
+                A_Hat(2*f-1,count)=A(2*f-1,(3*K)*(i-1)+j);
+                A_Hat(2*f-0,count)=A(2*f-0,(3*K)*(i-1)+j);
+            else
+                A_Hat(2*f-1,count)=A(2*f-1,(3*K)*(i-1)+j)+A(2*f-1,(3*K)*(j-1)+i);
+                A_Hat(2*f-0,count)=A(2*f-0,(3*K)*(i-1)+j)+A(2*f-0,(3*K)*(j-1)+i);
+            end
+        end
+    end
+end
+
+[U_A D_A V_A] = svd(A_Hat);
+
+%--------------------------------------------------------------------------
+%Fix the sign of V_A1: hongdong . 
+for i = 1:size(V_A,2)
+    if(V_A(1,i) < 0)
+        V_A(:,i) = -V_A(:,i);
+    end
+end
+%--------------------------------------------------------------------------
+
+%Estimate G through SDP and nonlinear optimization
+disp('Solve the first SDP to find G matrix... (wait)..'); 
+G = Estimate_G_k(PI_Hat,V_A,count,K); 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -106,10 +144,6 @@ else
 end
 %=========================================================================
 %Recovery the deformable shape
-
-%R_Recover = kron(ones(nPose, 1), eye(2, 3));
-%RR = mat2cell(R_Recover, 2 * ones(nPose, 1), 3);
-%Rsh = blkdiag(RR{:});
 
 %Method 1: Pseudo-inverse method
 S_PI = pinv(Rsh)*W;                       % Rank-3K S
@@ -142,7 +176,7 @@ for i = 1:3*nPose-3
 end
 
 %Trade-off parameter
-lambda = 1e-3;
+lambda = 1e-3; %e-3;
 
 %Closed-form solution, rank-3K as W
 S_Improved = pinv(Rsh'*Rsh + lambda*H'*H)*Rsh'*W;
@@ -168,19 +202,10 @@ end
 %--------------------------------------------------------------------------
 %Method 3: Block matrix method solved with fixed point continuation
 
-%disp('Start to solve shape matrix by the block matrix method using SDP/FPC ... (SDP/FPC is a rather slow process, be patient please....:-) hongdong ');
-%S_BMM = shape_recovery_fpca_s_sharp(W,Rsh,Shat_PI,K);
+disp('Start to solve shape matrix by the block matrix method using SDP/FPC ... (SDP/FPC is a rather slow process, be patient please....:-) hongdong ');
+    
 
-% ADMM settings.
-settings.rho = 1;
-settings.mu = 10;
-settings.tau_incr = 2;
-settings.tau_decr = 2;
-settings.max_iter = 200;
-settings.epsilon_abs = 1e-3;
-settings.epsilon_rel = 1e-3;
-% Find structure using ADMM.
-S_BMM = find_structure_affine_cameras(W, R_Recover, true, settings);
+S_BMM = shape_recovery_fpca_s_sharp(W,Rsh,Shat_PI,K);
 
 Shat_BMM = S_to_Shat(S_BMM,K);                   % Transform to K basis form
 

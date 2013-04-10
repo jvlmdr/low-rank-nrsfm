@@ -58,7 +58,7 @@
 clear
 clc
 
-load ../data/akhter-2008/yoga
+load datasets\yoga
 
 K = 10;
 
@@ -79,17 +79,3 @@ else
     [Shat_BMM Shat_PI Shat_Improve Rsh R_Recover Shape_Err_BMM Shape_Err_PI Shape_Err_Smooth Rotation_Err] = NRSFM_BMM(W,K,rotStruct);
 end
 
-F = size(Shat_PI, 1) / 3;
-P = size(Shat_PI, 2);
-
-points_BMM = shiftdim(reshape(Shat_BMM, [3, F, P]), 1);
-points_PI = shiftdim(reshape(Shat_PI, [3, F, P]), 1);
-points_Improve = shiftdim(reshape(Shat_Improve, [3, F, P]), 1);
-
-close all;
-plot_movie(figure(1), points_BMM, 10, [], {'-rx'});
-title('F x 3P');
-%plot_movie(figure(2), points_PI, 10, [], {'-rx'});
-%title('3F x P');
-%plot_movie(figure(3), points_Improve, 10, [], {'-rx'});
-%title('3F x P with temporal regularization');
