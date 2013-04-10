@@ -40,6 +40,12 @@ function rotations = find_rotations_rigid(projections)
       C * q >= d;
   cvx_end;
 
+  if isinf(cvx_optval)
+    % Feasibility not satisfied!
+    rotations = [];
+    return;
+  end
+
   Q = Q / norm(Q(:));
   q = Q(subset)';
 

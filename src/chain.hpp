@@ -1,3 +1,6 @@
+#ifndef CHAIN_HPP_
+#define CHAIN_HPP_
+
 #include <vector>
 #include <deque>
 #include <map>
@@ -37,3 +40,5 @@ class ComposedCostFunction : public ceres::CostFunction {
 };
 
 }
+
+#endif

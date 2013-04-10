@@ -65,8 +65,8 @@ save('simple-experiment-setup', 'scenes', 'solvers', 'ranks');
 trial = @(scene) { simple_experiment_trial(solvers, scene, ranks) };
 
 if exist('pararrayfun', 'file')
-  config = struct('h_cpu', '12:00:00', 'virtual_free', '1024M', ...
-      'hostname', '!leffe*');
+  config = struct('h_cpu', '0:59:00', 'virtual_free', '1024M', ...
+      'hostname', '!leffe*', 'matlab_optimisation', '1');
   solutions = pararrayfun(trial, scenes, numel(scenes), 'vp', config);
 else
   warning('Could not find pararrayfun(), running in series.');

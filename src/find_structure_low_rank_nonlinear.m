@@ -49,17 +49,23 @@ function [structure, basis, coeff] = find_structure_low_rank_nonlinear(...
     [basis, coeff] = find_structure_low_rank_nonlinear_mex(projections, ...
         quaternions, basis, coeff, max_iter, tol);
   else
-    error('Not compiled');
+    infile = [tempname(), '.nrsfm'];
+    outfile = [tempname(), '.nrsfm'];
+    save_problem_refine_cameras_and_low_rank_structure(projections, ...
+        quaternions, basis, coeff, infile);
+    command = sprintf(...
+        ['LD_LIBRARY_PATH=.:/nwdata/val064/local/lib/ ', ...
+          './refine-low-rank-structure %s %s'], ...
+        infile, outfile);
+    fprintf([command, '\n']);
+    [s, m] = unix(command, '-echo');
+    if s ~= 0
+      error(m);
+    end
+    [basis, coeff] = load_solution_refine_low_rank_structure(outfile);
   end
 
   structure = compose_structure(basis, coeff);
-
-  % Convert back to rotation matrices.
-  rotations = zeros(2, 3, F);
-  for t = 1:F
-    R_t = quat2rot(quaternions(:, t));
-    rotations(:, :, t) = R_t(1:2, :);
-  end
 
   % Compute final residual for debug purposes.
   r = 1/2 * projection_error(projections, structure, rotations) ^ 2;

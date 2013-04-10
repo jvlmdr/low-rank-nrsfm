@@ -5,8 +5,30 @@ message Problem {
   required int32 num_points = 2;
   required int32 num_bases = 3;
 
+  // 2 x num_points x num_frames
   repeated double projections = 4;
-  repeated double quaternions = 5;
+  // 4 x num_frames
+  repeated double cameras = 5;
+  // 3 x num_bases x num_points
   repeated double basis = 6;
+  // num_bases x num_frames
   repeated double coeff = 7;
+  // 3 x num_points x num_frames
+  repeated double structure = 8;
+}
+
+message CorrectiveTripleProblem {
+  required int32 num_frames = 1;
+  required int32 num_bases = 3;
+
+  // 2 x 3K x F
+  repeated double uncorrected_motion = 9;
+  // 3K x 3
+  repeated double corrective_triple = 10;
+}
+
+message CorrectiveTripleSolution {
+  required int32 num_bases = 3;
+  // 3K x 3
+  repeated double corrective_triple = 10;
 }

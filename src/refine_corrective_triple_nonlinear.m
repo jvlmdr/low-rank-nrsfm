@@ -34,7 +34,19 @@ function G = refine_corrective_triple_nonlinear(M_hat, G, max_iter, tol)
   if exist('find_structure_low_rank_nonlinear_mex', 'file')
     G = refine_corrective_triple_nonlinear_mex(M_hat, G, max_iter, tol);
   else
-    error('Not compiled');
+    infile = [tempname(), '.nrsfm'];
+    outfile = [tempname(), '.nrsfm'];
+    save_problem_refine_corrective_triple(M_hat, G, infile);
+    command = sprintf(...
+        ['LD_LIBRARY_PATH=.:/nwdata/val064/local/lib/ ', ...
+          './refine-corrective-triple %s %s'], ...
+        infile, outfile);
+    fprintf([command, '\n']);
+    [s, m] = unix(command, '-echo');
+    if s ~= 0
+      error(m);
+    end
+    G = load_solution_refine_corrective_triple(outfile);
   end
 
 %  G = G / norm(G(:));

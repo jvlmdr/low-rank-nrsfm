@@ -1,22 +1,20 @@
 #include "mex.h"
-#include <iostream>
 #include <string>
 #include <fstream>
 #include <google/protobuf/repeated_field.h>
 #include "nrsfm.pb.h"
 
 using std::string;
-using std::fstream;
 using google::protobuf::RepeatedFieldBackInserter;
 
 // Q -- 4 x F column major
 // B -- 3 x K x P column major
 // C -- K x F column major
-void loadNrsfm(const string& filename,
-               mxArray*& quaternions,
-               mxArray*& basis,
-               mxArray*& coeff) {
-  fstream file(filename.c_str(), std::ios::in | std::ios::binary);
+void load(const string& filename,
+          mxArray*& cameras,
+          mxArray*& basis,
+          mxArray*& coeff) {
+  std::ifstream file(filename.c_str(), std::ios::binary);
   if (!file) {
     mexErrMsgTxt("File not found");
   }
@@ -32,8 +30,8 @@ void loadNrsfm(const string& filename,
   int K = problem.num_bases();
 
   // Check dimensions.
-  if (problem.quaternions_size() != 4 * F) {
-    mexErrMsgTxt("Incorrect number of elements in quaternions");
+  if (problem.cameras_size() != 4 * F) {
+    mexErrMsgTxt("Incorrect number of elements in cameras");
   }
   if (problem.basis_size() != 3 * K * P) {
     mexErrMsgTxt("Incorrect number of elements in basis");
@@ -42,14 +40,14 @@ void loadNrsfm(const string& filename,
     mexErrMsgTxt("Incorrect number of elements in coeff");
   }
 
-  quaternions = mxCreateDoubleMatrix(4, F, mxREAL);
+  cameras = mxCreateDoubleMatrix(4, F, mxREAL);
   mwSize dims[3] = { 3, K, P };
   basis = mxCreateNumericArray(3, dims, mxDOUBLE_CLASS, mxREAL);
   coeff = mxCreateDoubleMatrix(K, F, mxREAL);
 
   // Copy data.
-  std::copy(problem.quaternions().begin(), problem.quaternions().end(),
-      mxGetPr(quaternions));
+  std::copy(problem.cameras().begin(), problem.cameras().end(),
+      mxGetPr(cameras));
   std::copy(problem.basis().begin(), problem.basis().end(), mxGetPr(basis));
   std::copy(problem.coeff().begin(), problem.coeff().end(), mxGetPr(coeff));
 }
@@ -81,5 +79,5 @@ void mexFunction(int nlhs, mxArray** plhs, int nrhs, const mxArray** prhs) {
 
   string filename(mxArrayToString(filename_arg));
 
-  loadNrsfm(filename, plhs[0], plhs[1], plhs[2]);
+  load(filename, plhs[0], plhs[1], plhs[2]);
 }

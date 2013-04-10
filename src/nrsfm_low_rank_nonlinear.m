@@ -50,16 +50,18 @@ function [structure, rotations, basis, coeff] = nrsfm_nonlinear(projections, ...
   else
     infile = [tempname(), '.nrsfm'];
     outfile = [tempname(), '.nrsfm'];
-    save_nrsfm_mex(projections, quaternions, basis, coeff, infile);
+    save_problem_refine_cameras_and_low_rank_structure(projections, quaternions, basis, coeff, infile);
     command = sprintf(...
-      'LD_LIBRARY_PATH=.:/nwdata/val064/local/lib/ ./nrsfm-nonlinear %s %s', ...
-      infile, outfile);
+        ['LD_LIBRARY_PATH=.:/nwdata/val064/local/lib/ ', ...
+          './refine-cameras-and-low-rank-structure %s %s', ...
+        infile, outfile);
     fprintf([command, '\n']);
     [s, m] = unix(command, '-echo');
     if s ~= 0
       error(m);
     end
-    [quaternions, basis, coeff] = load_nrsfm_mex(outfile);
+    [quaternions, basis, coeff] = ...
+        load_solution_refine_cameras_and_low_rank_structure(outfile);
   end
 
   structure = compose_structure(basis, coeff);

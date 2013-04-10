@@ -135,17 +135,17 @@ class DifferenceFunction {
 // Q -- 4 x F column major
 // B -- 3 x K x P column major
 // C -- K x F column major
-void nrsfm(const double* W,
-           double* Q,
-           double* B,
-           double* C,
-           int F,
-           int P,
-           int K,
-           int max_iter,
-           double tol,
-           bool verbose,
-           bool check_gradients) {
+void refineCamerasAndLowRankStructure(const double* W,
+                                      double* Q,
+                                      double* B,
+                                      double* C,
+                                      int F,
+                                      int P,
+                                      int K,
+                                      int max_iter,
+                                      double tol,
+                                      bool verbose,
+                                      bool check_gradients) {
   ceres::Problem problem;
 
   for (int t = 0; t < F; t += 1) {
@@ -191,17 +191,17 @@ void nrsfm(const double* W,
 // Q -- 4 x F column major
 // B -- 3 x K x P column major
 // C -- K x F column major
-void findStructure(const double* W,
-                   const double* Q,
-                   double* B,
-                   double* C,
-                   int F,
-                   int P,
-                   int K,
-                   int max_iter,
-                   double tol,
-                   bool verbose,
-                   bool check_gradients) {
+void refineLowRankStructure(const double* W,
+                            const double* Q,
+                            double* B,
+                            double* C,
+                            int F,
+                            int P,
+                            int K,
+                            int max_iter,
+                            double tol,
+                            bool verbose,
+                            bool check_gradients) {
   ceres::Problem problem;
 
   for (int t = 0; t < F; t += 1) {
@@ -249,19 +249,19 @@ void findStructure(const double* W,
 // S -- 3 x P x F column major
 // B -- 3 x K x P column major
 // C -- K x F column major
-void findApproxLowRankStructure(const double* W,
-                                const double* Q,
-                                double* S,
-                                double* B,
-                                double* C,
-                                double lambda,
-                                int F,
-                                int P,
-                                int K,
-                                int max_iter,
-                                double tol,
-                                bool verbose,
-                                bool check_gradients) {
+void refineApproxLowRankStructure(const double* W,
+                                  const double* Q,
+                                  double* S,
+                                  double* B,
+                                  double* C,
+                                  double lambda,
+                                  int F,
+                                  int P,
+                                  int K,
+                                  int max_iter,
+                                  double tol,
+                                  bool verbose,
+                                  bool check_gradients) {
   ceres::Problem problem;
 
   for (int t = 0; t < F; t += 1) {
