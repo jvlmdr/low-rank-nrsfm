@@ -28,6 +28,6 @@ function R = find_rotations_dai(P_hat)
 %  options = optimset('Display', 'Final', 'Diagnostics','off','Largescale', 'off', 'MaxFunEval',200000,'MaxIter',5000,'TolFun',1e-10,'TolX',1e-10);
 %  [Q, fval] = fminunc(@evalQ_regularization,Q_hat,options,P_hat);
 
-  Q = find_corrective_matrix_admm(P_hat);
+  Q = find_corrective_matrix_dai(P_hat);
   R = Recover_Rotation(P_hat, Q);
 end

@@ -5,16 +5,29 @@ function rotations = find_rotations_rigid(projections)
   W = projections_to_matrix(projections);
   [R_hat, S_hat] = factorize_projections(projections, 1);
 
-  [A, c] = rotation_constraints(R_hat);
-  C = c';
+  [A, C] = rotation_constraints(R_hat);
+  %C = C(1, :);
   d = 1;
 
-  % min x' P x  s.t.  A x = b, X >= 0
+  [H, subset] = construct_symmetric(3);
 
-  [~, subset] = construct_symmetric(3);
+%  % First solve using Lagrange multipliers, sans semidefinite constraint.
+%  x = [A' * A, C(1, :)'; C(1, :), 0] \ [zeros(6, 1); d];
+%  % Extract primal variables only.
+%  x = x(1:6);
+%  % Build symmetric matrix.
+%  X = reshape(H * x, [3, 3]);
+%  % Check if matrix is positive semidefinite.
+%  lambda = eig(X);
+%  if any(and(lambda < 0, abs(lambda) > 1e-6 * max(abs(lambda))))
+%    warning('Unconstrained solution not positive semidefinite');
+%    disp(sort(lambda, 'descend'));
+%  end
 
-  cvx_solver sedumi;
-  cvx_begin sdp quiet;
+  % Solve using CVX.
+  cvx_begin sdp;
+    cvx_solver sedumi;
+
     variable Q(3, 3) symmetric;
     q = Q(subset)';
     
@@ -23,23 +36,53 @@ function rotations = find_rotations_rigid(projections)
       % Q = G G', so it must be positive semidefinite.
       Q >= 0;
       % ||i_1|| == 1.
-      C * q - d == 0;
+      %C(1, :) * q == d;
+      C * q >= d;
   cvx_end;
+
+  Q = Q / norm(Q(:));
+  q = Q(subset)';
+
+  fprintf('rank(Q): %d, |A q|: %g\n', rank(Q), norm(A * q));
+  fprintf('Singular values of Gram matrix:\n');
+  disp(svd(Q));
+
+%  % Solve using SeDuMi.
+%  AA = zeros(size(A, 1), 9);
+%  AA(:, subset) = A;
+%  b = zeros(size(A, 1), 1);
+%  CC = zeros(size(C, 1), 9);
+%  CC(:, subset) = C(1, :);
+%
+%  Q = semidefinite_constrained_least_squares(AA, b, CC, d);
 
   % Extract corrective transform from Gram matrix.
   [V, D] = eig(Q);
-  d = diag(D);
-  % Sort largest to smallest.
-  [d, order] = sort(d, 'descend');
-  V = V(:, order);
-  % Should be positive. Ensure.
-  d = max(d, 0);
-  % Q = G G'
-  G = V * diag(sqrt(d));
+  lambda = diag(D);
+  % Factorize Q = G G', zero any small negative values.
+  G = V * diag(sqrt(max(lambda, 0)));
+
+  QQ = Q;
+  qq = q;
+  GG = G;
+
+  % Non-linear refinement.
+  fprintf('Non-linear refinement\n');
+  row_pairs = projections_from_matrix(R_hat);
+  G = refine_corrective_triple_nonlinear(row_pairs, G, 1000, 1e-6);
+  Q = G * G';
+  % Normalize such that norm(Q(:)) = 1.
+  G = G / sqrt(norm(Q(:)));
+  Q = G * G';
+  q = Q(subset)';
+  fprintf('rank(Q): %d, |A q|: %g\n', rank(Q), norm(A * q));
+  fprintf('Singular values of Gram matrix:\n');
+  disp(svd(Q));
 
   % Apply corrective transform.
   R = R_hat * G;
   S = inv(G) * S_hat;
 
-  [rotations, scales] = nearest_scaled_rotation_matrices(R);
+  rotations = unstack_cameras(R);
+  [rotations, scales] = nearest_scaled_rotation_matrices(rotations);
 end

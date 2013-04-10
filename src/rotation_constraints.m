@@ -1,6 +1,6 @@
 % Returns a 2F x 3K(3K+1)/2 matrix of contrains.
 
-function [A, c] = rotation_constraints(M_hat)
+function [A, C] = rotation_constraints(M_hat)
   % M_hat is 2F x 3K.
   F = size(M_hat, 1) / 2;
   K = size(M_hat, 2) / 3;
@@ -22,7 +22,7 @@ function [A, c] = rotation_constraints(M_hat)
   % Come back and enforce symmetry at the end.
   n = (3 * K) * (3 * K + 1) / 2;
   A = zeros(2, F, n);
-  c = zeros(n, 1);
+  C = zeros(2, F, n);
 
   % Make row pairs of M_hat easily accessible.
   M_hat = reshape(M_hat, [2, F, 3 * K]);
@@ -39,10 +39,10 @@ function [A, c] = rotation_constraints(M_hat)
     A(:, t, :) = [A_t(1, :) - A_t(4, :); A_t(2, :)];
 
     % Magnitude constraint.
-    if t == 1
-      c = A_t(1, :)';
-    end
+    C(1, t, :) = A_t(1, :);
+    C(2, t, :) = A_t(4, :);
   end
 
   A = reshape(A, [2 * F, n]);
+  C = reshape(C, [2 * F, n]);
 end

@@ -1,10 +1,10 @@
-function G = find_corrective_matrix_hongdong(PI_Hat)
+function G = find_corrective_matrix_dai(PI_Hat)
 
 % PI_Hat is 2F x 3K.
 nPose = size(PI_Hat, 1) / 2;
 K = size(PI_Hat, 2) / 3;
 
-[~, A_Hat] = rotation_constraints(PI_Hat);
+A_Hat = rotation_constraints(PI_Hat);
 count = (3 * K) * (3 * K + 1) / 2;
 
 [U_A D_A V_A] = svd(A_Hat);
