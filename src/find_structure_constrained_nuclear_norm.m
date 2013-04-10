@@ -4,7 +4,7 @@
 %   w_ti = R_t s_ti.
 %
 % structure = find_structure_constrained_nuclear_norm(projections, rotations,
-%     rho, max_iter, mu, tau_incr, tau_decr)
+%     rho, tau, rho_max, primal_tol, dual_tol, max_iter, verbose)
 %
 % Parameters:
 % projections -- 2 x P x F

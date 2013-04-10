@@ -4,9 +4,21 @@ demo_setup;
 % Using "ground truth" cameras (assuming that congealing finds transform
 % yielding structure with optimal compaction).
 
-%structure = true_structure;
-%cameras = true_cameras;
-%
+structure = true_structure;
+cameras = true_cameras;
+
+S = k_reshape(structure_to_matrix(structure), 3);
+S = project_rank(S, K);
+structure = structure_from_matrix(k_unreshape(S, 3));
+
+S = structure_to_matrix(structure);
+R = block_diagonal_cameras(cameras);
+W = R * S;
+projections = projections_from_matrix(W);
+structure_nullspace = find_structure_nullspace(projections, cameras, K);
+
+keyboard;
+
 %% Project true structure in to rank K volume.
 %[basis, coeff] = factorize_structure(structure, K);
 %structure_low_rank = compose_structure(basis, coeff);
@@ -133,12 +145,13 @@ demo_setup;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 fprintf('Solving rigid SfM\n');
-find_rotations_rigid(projections);
+rigid_cameras = find_rotations_rigid(projections);
 
 fprintf('Solving cameras by Dai et al.''s method\n');
-cameras = find_rotations_dai(projections, K);
+dai_cameras = find_rotations_dai(projections, K);
 
-structure = find_structure_dai(projections, cameras, K);
+fprintf('Solving structure by Dai et al.''s method\n');
+dai_structure = find_structure_dai(projections, dai_cameras, K);
 
 % Estimate cameras.
 fprintf('Solving cameras by our method\n');
