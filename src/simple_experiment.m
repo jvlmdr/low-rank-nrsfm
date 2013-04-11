@@ -5,7 +5,7 @@ downsample = 8;
 omega_stddev = 5 * pi / 180;
 scale_stddev = sqrt(2);
 
-ranks = [2, 4, 8];
+ranks = 2:12;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -29,6 +29,8 @@ sequences = permute(sequences, [3, 2, 1, 4]);
 % Generate a camera for each sequence and project it.
 scenes = generate_random_scene_for_all_sequences(sequences, omega_stddev, ...
     scale_stddev);
+
+ranks = ranks(3 * ranks < min(num_points, 2 * num_frames))
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -65,7 +67,7 @@ save('simple-experiment-setup', 'scenes', 'solvers', 'ranks');
 trial = @(scene) { simple_experiment_trial(solvers, scene, ranks) };
 
 if exist('pararrayfun', 'file')
-  config = struct('h_cpu', '0:59:00', 'virtual_free', '1024M', ...
+  config = struct('h_cpu', '8:00:00', 'virtual_free', '1024M', ...
       'hostname', '!leffe*', 'matlab_optimisation', '1');
   solutions = pararrayfun(trial, scenes, numel(scenes), 'vp', config);
 else
