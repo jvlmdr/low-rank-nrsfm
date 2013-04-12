@@ -8,7 +8,7 @@ structure = true_structure;
 cameras = true_cameras;
 
 S = k_reshape(structure_to_matrix(structure), 3);
-S = project_rank(S, K);
+%S = project_rank(S, K);
 structure = structure_from_matrix(k_unreshape(S, 3));
 
 S = structure_to_matrix(structure);
@@ -16,6 +16,10 @@ R = block_diagonal_cameras(cameras);
 W = R * S;
 projections = projections_from_matrix(W);
 structure_nullspace = find_structure_nullspace(projections, cameras, K);
+
+[structure_xiao, rotations_xiao] = nrsfm_basis_constraints(projections, K);
+
+keyboard;
 
 %% Project true structure in to rank K volume.
 %[basis, coeff] = factorize_structure(structure, K);

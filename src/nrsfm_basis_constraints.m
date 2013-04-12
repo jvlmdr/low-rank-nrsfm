@@ -25,7 +25,8 @@ function [structure, rotations, basis, coeff] = nrsfm_basis_constraints(...
   subset = subset(1:K);
 
   % Solve for corrective matrix.
-  [G, rotations, coeff] = find_corrective_matrix_basis_constraints(M_hat, subset);
+  [G, rotations, coeff] = find_corrective_matrix_basis_constraints(M_hat, ...
+      subset);
   % Recover structure.
   B = inv(G) * B_hat;
 

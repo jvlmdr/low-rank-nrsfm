@@ -32,91 +32,88 @@ function [G, rotations, coeff] = align_corrective_triples(M_hat, G)
   M = permute(M, [3, 4, 1, 2]);
 
   for k = 2:K
-    % Pick frame to align.
-    cc = C(:, 1) .* C(:, k);
-    [max_cc, u] = max(cc);
-
-    % Align camera u from triple k to that of triple 1.
-    % Assume C(u, 1) > 0 and C(u, k) > 0.
-    % Scale doesn't matter to orthogonal Procrustes since it's simply an SVD.
-    M_u1 = M(:, :, u, 1);
-    M_uk = M(:, :, u, k);
-    [E(:, :, 1), E(:, :, 2)] = ambiguous_procrustes(M_uk, M_u1);
-
     % Evaluate both transforms.
-    residuals = zeros(F, 2);
-    signs = zeros(F, 2);
+    residuals = zeros(2, F);
+    signs = zeros(F, 2, F);
 
-    for j = 1:2
-      % Take a copy.
-      R_1 = M(:, :, :, 1);
-      R_k = M(:, :, :, k);
+    % Align using frame u.
+    for u = 1:F
+      cc = C(:, 1) .* C(:, k);
 
-      % [2, 3, F] -> [2, F, 3] -> [2F, 3]
-      R_k = permute(R_k, [1, 3, 2]);
-      R_k = reshape(R_k, [2 * F, 3]);
+      % Align camera u from triple k to that of triple 1.
+      % Assume C(u, 1) > 0 and C(u, k) > 0.
+      % Scale doesn't matter to orthogonal Procrustes since it's simply an SVD.
+      M_u1 = M(:, :, u, 1);
+      M_uk = M(:, :, u, k);
+      [E(:, :, 1, u), E(:, :, 2, u)] = ambiguous_procrustes(M_uk, M_u1);
 
-      % Apply transform from Procrustes to all cameras.
-      R_k = R_k * E(:, :, j);
+      for j = 1:2
+        % Take a copy.
+        R_1 = M(:, :, :, 1);
+        R_k = M(:, :, :, k);
 
-      % [2F, 3] -> [2, F, 3] -> [2, 3, F]
-      R_k = reshape(R_k, [2, F, 3]);
-      R_k = permute(R_k, [1, 3, 2]);
+        % [2, 3, F] -> [2, F, 3] -> [2F, 3]
+        R_k = stack_cameras(R_k);
+        % Apply transform from Procrustes to all cameras.
+        R_k = R_k * E(:, :, j, u);
+        % [2F, 3] -> [2, F, 3] -> [2, 3, F]
+        R_k = unstack_cameras(R_k);
 
-      % Scale each rotation by the other basis' scale to avoid division.
-      R_1 = bsxfun(@times, R_1, reshape(C(:, k), [1, 1, F]));
-      R_k = bsxfun(@times, R_k, reshape(C(:, 1), [1, 1, F]));
+        % Scale each rotation by the other basis' scale to avoid division.
+        R_1 = bsxfun(@times, R_1, reshape(C(:, k), [1, 1, F]));
+        R_k = bsxfun(@times, R_k, reshape(C(:, 1), [1, 1, F]));
 
-      % Determine sign of each C(t, k).
-      for t = 1:F
-        positive_residual = norm(R_1(:, :, t) - R_k(:, :, t));
-        negative_residual = norm(R_1(:, :, t) + R_k(:, :, t));
+        % Determine sign of C(t, k) for each t.
+        for t = 1:F
+          positive_residual = norm(R_1(:, :, t) - R_k(:, :, t), 'fro');
+          negative_residual = norm(R_1(:, :, t) + R_k(:, :, t), 'fro');
 
-        if negative_residual < positive_residual
-          signs(t, j) = -1;
-        else
-          signs(t, j) = 1;
+          if negative_residual < positive_residual
+            signs(t, j, u) = -1;
+          else
+            signs(t, j, u) = 1;
+          end
         end
 
-        residuals(t, j) = min(positive_residual, negative_residual);
+        % Apply signs to coefficients.
+        c_k = signs(:, j, u) .* C(:, k);
+        % Re-extract cameras.
+        R_1 = M(:, :, :, 1);
+        R_k = M(:, :, :, k);
+
+        % Scale each rotation by the other basis' scale to avoid division.
+        R_1 = bsxfun(@times, R_1, reshape(c_k, [1, 1, F]));
+        R_k = bsxfun(@times, R_k, reshape(C(:, 1), [1, 1, F]));
+
+        % [2, 3, F] -> [2, F, 3] -> [2F, 3]
+        R_1 = stack_cameras(R_1);
+        R_k = stack_cameras(R_k);
+
+        % After fixing signs, align all cameras.
+        E(:, :, j, u) = procrustes(R_k, R_1);
+
+        % Compute residual.
+        residuals(j, u) = norm(R_k * E(:, :, j, u) - R_1, 'fro');
       end
     end
 
-    % Pick between ambiguous Procrustes solutions.
-    residuals = mean(residuals);
-    fprintf('Ambiguous Procrustes residuals: %g, %g\n', min(residuals), ...
-        max(residuals));
-    [residual, arg] = min(residuals);
-    E = E(:, :, arg);
-    signs = signs(:, arg);
+    % Find best transform.
+    [min_residual, index] = min(residuals(:));
+    [j_star, u_star] = ind2sub(size(residuals), index);
+    E = E(:, :, index);
+    signs = signs(:, index);
 
-    C(:, k) = signs .* C(:, k);
+    % Apply best signs.
+    C(:, k) = C(:, k) .* signs;
 
-    % Re-extract cameras.
-    R_1 = M(:, :, :, 1);
-    R_k = M(:, :, :, k);
-
-    % Scale each rotation by the other basis' scale to avoid division.
-    R_1 = bsxfun(@times, R_1, reshape(C(:, k), [1, 1, F]));
-    R_k = bsxfun(@times, R_k, reshape(C(:, 1), [1, 1, F]));
-
-    % [2, 3, F] -> [2, F, 3] -> [2F, 3]
-    R_1 = permute(R_1, [1, 3, 2]);
-    R_1 = reshape(R_1, [2 * F, 3]);
-    R_k = permute(R_k, [1, 3, 2]);
-    R_k = reshape(R_k, [2 * F, 3]);
-
-    % After fixing signs, align all cameras.
-    E = procrustes(R_k, R_1);
+    % Apply transform to triple.
+    G(:, :, k) = G(:, :, k) * E;
 
     % [2, 3, F, K] -> [2, F, 3, K] -> [2F, 3, K]
     M = permute(M, [1, 3, 2, 4]);
     M = reshape(M, [2 * F, 3, K]);
-
-    % Apply transform to triple.
-    G(:, :, k) = G(:, :, k) * E;
+    % Apply transform to motion matrix.
     M(:, :, k) = M(:, :, k) * E;
-
     % [2F, 3, K] -> [2, F, 3, K] -> [2, 3, F, K]
     M = reshape(M, [2, F, 3, K]);
     M = permute(M, [1, 3, 2, 4]);

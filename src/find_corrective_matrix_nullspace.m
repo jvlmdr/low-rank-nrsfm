@@ -35,17 +35,28 @@ function [G, C] = find_corrective_matrix_nullspace(M_hat, R)
   A_c = A_c(order, :);
 
   % Build matrix for G.
-  A_q = kron(speye(3), M_hat);
+  A_g = kron(speye(3), M_hat);
 
-  % Assemble full system.
-  A = [A_q, -A_c];
+%  % Assemble full system.
+%  A = [A_g, -A_c];
+%
+%  [U, S, V] = svd(full(A));
+%
+%  % Take last K singular vectors.
+%  V = V(:, (end - K + 1):end);
+%  G = V(1:(9 * K), :);
+%  C = V((9 * K + 1):end, :);
 
-  [U, S, V] = svd(full(A));
+  A = [-A_c, A_g];
 
-  % Take last K singular vectors.
-  V = V(:, (end - K + 1):end);
-  G = V(1:(9 * K), :);
-  C = V((9 * K + 1):end, :);
+  % Eliminate c using QR decomposition.
+  [Q, R] = qr(full(A));
+  R = R(F + (1:(9 * K)), F + (1:(9 * K)));
+  % Find solutions to R g = 0
+  [U, S, V] = svd(R);
+  G = V(:, (end - K + 1):end);
+  % Solve for c.
+  C = A_c \ (A_g * G);
 
   G = reshape(G, [3 * K, 3 * K]);
 end
